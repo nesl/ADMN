@@ -1,0 +1,26 @@
+base_root: "/mnt/ssd_8t/jason/IROS/Raw_Datasets/single_view_1"
+
+cache_dir: "/mnt/ssd_8t/jason/MotiviationalStudy/cached_dataset/"
+
+valid_mods:
+  - mocap
+  - zed_camera_left
+  - realsense_camera_depth
+  - range_doppler
+
+valid_nodes:
+  - 1
+  - 2
+  - 3
+
+learning_rate: 1e-5 # 5e-4 for stock training (not controller)
+
+num_epochs: 100
+
+adapter_hidden_dim: 512
+
+batch_size: 32
+
+save_best_model: True
+
+save_every_X_model: 5

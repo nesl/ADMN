@@ -1,0 +1,7 @@
+Figure_Generation
+*.pth
+*.pt
+**/logs/
+**/log*/
+*.pickle
+**/test_datasets/
