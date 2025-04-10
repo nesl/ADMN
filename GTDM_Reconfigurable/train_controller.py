@@ -246,7 +246,7 @@ def main(args):
                 print('-------------------------------------------------------------------------------------------------------------------------------')
                 epoch_train_loss += train_loss
 
-            noise_loss = torch.mean(torch.abs(gt_noise[:, 0] - pred_noise[:, 0])) + torch.mean(torch.abs(gt_noise[:, 1] - pred_noise[:, 1])) * 10
+            noise_loss = torch.mean(torch.abs(gt_noise[:, 0] - pred_noise[:, 0])) + torch.mean(torch.abs(gt_noise[:, 1] - pred_noise[:, 1])) * 20 # changed from 10 to 20 3/26
 
 
             print("Noise loss", noise_loss)

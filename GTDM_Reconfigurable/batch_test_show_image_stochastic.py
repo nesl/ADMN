@@ -110,7 +110,7 @@ def main(args):
     model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=False)
     model.eval() # Set model to eval mode for dropout
     # Create dataset and dataloader for test
-    testset = PickleDataset(args.cache_dir + '/test/', args.valid_mods, args.valid_nodes)
+    testset = PickleDataset(args.cache_dir + '/train_node1_errors/', args.valid_mods, args.valid_nodes)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
@@ -133,10 +133,11 @@ def main(args):
     idx = 0
     for batch in tqdm(test_dataloader, desc = 'Computing test loss', leave=False):
         idx += 1
-        if idx % 10 != 0:
-            continue
+        # if idx % 10 != 0:
+        #     continue
         with torch.no_grad():
-            fig, axes = plt.subplots(3, 3, figsize=(10, 3))
+
+            fig, axes = plt.subplots(3, 3, figsize=(15, 15))
             data, gt_pos = batch['data'], batch['gt_pos']
             orig_data = data
             axes[2][0].imshow(orig_data['zed_camera_left', 'node_1'][0].permute(1, 2, 0).cpu().numpy())
@@ -144,14 +145,15 @@ def main(args):
             axes[2][2].imshow(orig_data['zed_camera_left', 'node_3'][0].permute(1, 2, 0).cpu().numpy())
 
             gt_pos = gt_pos.to(device)[:, 0]
-            if args.test_type == 'continuous':
-                data, gt_noise = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
-            elif args.test_type == 'finite':
-                data, gt_noise = transform_finite_noise(data, args.batch_size, img_std_max=3, depth_std_max=0.75)
-            elif args.test_type == 'discrete':
-                data, gt_noise = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
-            else:
-                raise Exception('Invalid test type specified')
+            # if args.test_type == 'continuous':
+            #     data, gt_noise = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
+            # elif args.test_type == 'finite':
+            #     data, gt_noise = transform_finite_noise(data, args.batch_size, img_std_max=3, depth_std_max=0.75)
+            # elif args.test_type == 'discrete':
+            #     data, gt_noise = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
+            # else:
+            #     raise Exception('Invalid test type specified')
+            data, gt_noise = transform_noise(data, args.batch_size, img_std_max=0, depth_std_max=0)
             start = time.time()
             print(gt_noise)
             results = model(data) # Evaluate on test data
@@ -163,9 +165,8 @@ def main(args):
             axes[1][0].imshow(data['realsense_camera_depth', 'node_1'][0].permute(1, 2, 0).cpu().numpy())
             axes[1][1].imshow(data['realsense_camera_depth', 'node_2'][0].permute(1, 2, 0).cpu().numpy())
             axes[1][2].imshow(data['realsense_camera_depth', 'node_3'][0].permute(1, 2, 0).cpu().numpy())
-            
+            print(gt_pos[0])
             plt.show()
-            import pdb; pdb.set_trace()
            
                    
 

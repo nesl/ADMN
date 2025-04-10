@@ -12,7 +12,6 @@ import models.backbones as backbones
 import models.output_head as output_head
 from models.vit_dev import ViT, LIMUBertEnc, TransformerDec, TransformerEnc, positionalencoding1d
 from torchvision import datasets, transforms, models
-from torchsummary import summary
 from einops import rearrange, repeat
 from collections import deque
 from models.PoseExpansion import PoseExpand
@@ -21,7 +20,7 @@ from scipy.spatial.transform import Rotation as R
 from einops import rearrange, repeat
 from torchvision.models import resnet18
 from models.timm_vit import VisionTransformer
-from timm.models.vision_transformer import Block, DropoutBlock
+from timm.models.vision_transformer import Block #, DropoutBlock
 
 class GTDM_Early(nn.Module):
     def __init__(self, adapter_hidden_dim, valid_mods, valid_nodes, drop_layers_img = None, drop_layers_depth=None, layerdrop=0.0, vision_vit_layers=12, depth_vit_layers=12):

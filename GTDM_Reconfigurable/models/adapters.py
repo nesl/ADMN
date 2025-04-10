@@ -2,7 +2,6 @@ import numpy as np
 from tqdm import tqdm, trange
 import torch
 import torch.nn as nn
-import torchsummary as summary
 
 # Adapter is a two layer MLP with input layer, hidden layer, and output layer (256)
 class Adapter(nn.Module):

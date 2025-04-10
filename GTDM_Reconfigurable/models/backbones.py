@@ -6,7 +6,6 @@ from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from torchvision.models import resnet50, ResNet50_Weights
-import torchsummary as summary
 
 # OBSOLETE FILE SIMPLY USED FOR DEBUGGING
 
