@@ -202,13 +202,6 @@ def main(args):
         f.write('\n')
     print(total_model_time)
 
-      
-    #import pdb; pdb.set_trace()
-    # Generate the video in the same logs folder as train
-    # v = VideoGenerator(dir_path, data_configs.valid_mods, data_configs.valid_nodes, testset) # Pass valid mods, nodes, and also hidden layer size
-    # v.write_video(outputs)
-
-
 if __name__ == '__main__':
     args = get_args_parser()
     main(args)

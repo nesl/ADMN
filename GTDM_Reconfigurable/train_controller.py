@@ -1,24 +1,21 @@
 import numpy as np
 import os
-from tqdm import tqdm, trange
-
+from tqdm import trange
 import torch
-import torch.nn as nn
 from torch.optim import Adam
-from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
-from PickleDataset import PickleDataset, transform_noise, transform_set_noise, transform_finite_noise, transform_mask, transform_discrete_noise
+from PickleDataset import PickleDataset, transform_noise, transform_finite_noise, transform_discrete_noise
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 from cache_datasets import cache_data
-from models.GTDM_Model import GTDM_Controller, Conv_GTDM_Controller
+from models.GTDM_Model import Conv_GTDM_Controller
 
-import argparse
 import random
 import configargparse
 import sys
 import time
 
+# Helps us write data to a file
 class Tee:
     def __init__(self, *file_objects):
         self.file_objects = file_objects
@@ -32,7 +29,7 @@ class Tee:
         for file in self.file_objects:
             file.flush()
 
-
+# Anneals loss in a cosine manner
 class CosineAnnealer:
     def __init__(self, num_epochs=100, max=5, min=1):
         self.num_epochs = num_epochs
@@ -46,7 +43,7 @@ class CosineAnnealer:
 def mseloss(t1, t2):
     sum = 0
     for i in range(len(t1)):
-        sum += (t1[i].item() - t2[i].item()) ** 2
+        sum += (t1[i] - t2[i]) ** 2 # Removed item to ensure gradient flow
     return sum ** 0.5 
 
 def get_args_parser():
@@ -125,15 +122,14 @@ def get_args_parser():
 
 
 def main(args):
-    
+    # Set seed
     print("Starting training with seed value", args.seedVal)
     torch.backends.cudnn.deterministic = True
     random.seed(args.seedVal)
     torch.manual_seed(args.seedVal)
     torch.cuda.manual_seed(args.seedVal)
     np.random.seed(args.seedVal)
-    # Get current date and time to create new training directory within ./logs/ to store model weights
-    now = datetime.now()
+    # Create based on noise type and number of layers
     dt_string = "Controller_" + str(args.train_type) + '_Layer_' + str(args.total_layers) + '_Seed_' + str(args.seedVal)
     os.mkdir('./logs/' + dt_string)
     cache_data(args) # Runs cacher from the data_configs.py file, will convert hdf5 to pickle if not already done
@@ -154,13 +150,12 @@ def main(args):
     # Create the overall model and load on appropriate device
     model = Conv_GTDM_Controller(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers)
 
+    # We have similar variables between GTDM_Early Model and Conv_GTDM_Controller, this will help us initialize the backbones and the fusion layers
     print(model.load_state_dict(torch.load('./logs/Noise_Tests/LD02/AWGN_LD_Progressive_02_Epoch400/last.pt'), strict=False))
-    # model_template = Conv_GTDM_Controller(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers)
-
-    # model_template.load_state_dict(torch.load('./logs/Conv_Controller_Reference/last.pt'))
-    # model.controller = model_template.controller
-
+    
     model.to(device)
+    
+    # Freeze all the parameters except for the controller
     for param in model.parameters():
         param.requires_grad=False
 
@@ -168,25 +163,15 @@ def main(args):
         param.requires_grad = True
    
 
-    # for param in model.vision.parameters():
-    #     param.requires_grad = False
-
-    # for param in model.depth.parameters():
-    #     param.requires_grad = False
-
-    # for param in model.vision.blocks[0].parameters():
-    #     param.requires_grad = True
-    # for param in model.depth.blocks[0].parameters():
-    #     param.requires_grad = True
-
+    # This was an artifact of when I was using different learning rates for each model component, no longer the case
     params = [
         {"params": [p for name, p in model.controller.named_parameters() if "output_head" not in name], "lr": args.learning_rate},
         {"params": model.controller.output_head.parameters(), "lr": args.learning_rate},
     ]
     optimizer = Adam(params)
-    scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, total_iters=args.num_epochs)
-    annealer = CosineAnnealer(25, 2, 1)
 
+    # We actually use a linear scheduler instead of Cosine
+    scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, total_iters=args.num_epochs)
     writer = SummaryWriter(log_dir='./logs/' + dt_string) # Implement tensorboard
     
     # Training loop
@@ -197,10 +182,10 @@ def main(args):
         epoch_train_loss = 0
         ad_train_loss = 0
         model.train()
-        # if epoch % 3 == 2:
-        #     model.controller.decrease_model_layers(min_layers=8)
+        
+        # Change the temperature with the CosineAnnealer if we are doing progressive gumbel softmax with decreasing temperature
         #print("Changed temperature to ", annealer.forward(epoch))
-        #import pdb; pdb.set_trace()
+ 
         for batch in train_dataloader:
             batch_num += 1
 
@@ -209,8 +194,8 @@ def main(args):
             data, gt_pos = batch['data'], batch['gt_pos']
             # Data itself is a dictionary with keys ('modality', 'node') that points to data of dimension batch_size
             gt_pos = gt_pos.to(device)
-            # print('Img 0', data[('img_std', 'img_std')][0])
-            # print("Depth 0", data[('depth_std', 'depth_std')][0])
+            
+            # Depending on the type of noise, generate the appropriate noise distribution
             if args.train_type == 'continuous':
                 data, gt_noise = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
             elif args.train_type == 'finite':
@@ -219,10 +204,12 @@ def main(args):
                 data, gt_noise = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
             else:
                 raise Exception('Invalid test type specified')
-            # Perform forward pass
+            
+            # Forward pass gives us the loc results and the predicted noise of each modality
             batch_results, pred_noise = model(data, controller_temperature = args.temp, discretization_method=args.discretization_method) #Dictionary
             print(pred_noise[0], gt_noise[0])
-            # key is still ('modality', 'node') with a distribution estimated by the model
+            
+            # Accumulate train loss
             for key in batch_results.keys():
                 for i in range(len(batch_results[key]['dist'])):
                     # TODO Currently 2D, also introduce hybrid training, use MSE to help convergence at start then use NLL
@@ -246,10 +233,12 @@ def main(args):
                 print('-------------------------------------------------------------------------------------------------------------------------------')
                 epoch_train_loss += train_loss
 
+            # Make sure the model can correctly identify noise, depth noise is smaller so we amplify it by 20 in comparison
             noise_loss = torch.mean(torch.abs(gt_noise[:, 0] - pred_noise[:, 0])) + torch.mean(torch.abs(gt_noise[:, 1] - pred_noise[:, 1])) * 20 # changed from 10 to 20 3/26
 
-
             print("Noise loss", noise_loss)
+
+            # If epoch is less than one (first epoch), we focus solely on predicting the correct noise, do not care about the localization accuracy
             if epoch < 1: 
                 del train_loss
                 train_loss = torch.zeros_like(noise_loss).cuda()
@@ -258,17 +247,11 @@ def main(args):
                 del pos_neg_log_probs
                 torch.cuda.empty_cache()
                 
-            # else:
-            train_loss += noise_loss # TODO CHANGE
+            train_loss += noise_loss 
             train_loss.backward()
-            #nn.utils.clip_grad_norm_(model.parameters(), max_norm=10)
+            #nn.utils.clip_grad_norm_(model.parameters(), max_norm=10) # No need to clip grad norm so far, can check this is errors occur
             optimizer.step() 
-            optimizer.zero_grad()
-
-            
-               
-        #     # Backprop and update
-           
+            optimizer.zero_grad()           
             
         
         print('TRAIN LOSS', epoch_train_loss / batch_num)
@@ -281,6 +264,7 @@ def main(args):
         epoch_val_loss = 0
         with torch.no_grad():
             log_file = open('./logs/' + dt_string + '/validation.txt', "w")
+            # Redirect output to another file
             temp_std_out = sys.stdout
             sys.stdout = Tee(sys.stdout, log_file)
             model.eval()
@@ -291,7 +275,7 @@ def main(args):
                 # Each batch is a dictionary containing all the sensor data, and the ground truth positions
                 data, gt_pos = batch['data'], batch['gt_pos']
                 gt_pos = gt_pos.to(device)
-                
+                # val dataset is also clean, we add noise here
                 if args.train_type == 'continuous':
                     data, _ = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
                 elif args.train_type == 'finite':
@@ -300,7 +284,7 @@ def main(args):
                     data, _ = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
                 else:
                     raise Exception('Invalid test type specified')
-            # Perform forward pass
+
                 # Perform forward pass
                 batch_results, pred_noise = model(data, controller_temperature=1,  discretization_method=args.discretization_method) #Dictionary
                 print(pred_noise[0])
@@ -323,6 +307,7 @@ def main(args):
         torch.save(model.state_dict(), './logs/' + dt_string + '/last.pt')
                 
     print(time.time() - train_start)
+    
 if __name__ == '__main__':
     args = get_args_parser()
     main(args)

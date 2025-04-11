@@ -11,9 +11,14 @@ from tracker import TorchMultiObsKalmanFilter
 from video_generator import VideoGenerator
 from cache_datasets import cache_data
 import configargparse
-from PickleDataset import transform_noise, transform_set_noise, transform_mask, transform_finite_noise, transform_discrete_noise
 import time
 
+'''
+
+Performing testing on the ADMN controller
+We have a separate, fixed noisy dataset stored under test_datasets to ensure consistent performance
+
+'''
 def computeDist(tensor1, tensor2):
     tensor1 = torch.squeeze(tensor1)
     tensor2 = torch.squeeze(tensor2)
@@ -203,12 +208,6 @@ def main(args):
         f.write('\n')
 
     print(total_model_time)
-
-      
-    #import pdb; pdb.set_trace()
-    # Generate the video in the same logs folder as train
-    # v = VideoGenerator(dir_path, data_configs.valid_mods, data_configs.valid_nodes, testset) # Pass valid mods, nodes, and also hidden layer size
-    # v.write_video(outputs)
 
 
 if __name__ == '__main__':

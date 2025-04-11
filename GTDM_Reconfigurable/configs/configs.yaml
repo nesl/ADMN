@@ -12,7 +12,7 @@ valid_nodes:
   - 2
   - 3
 
-learning_rate: 1e-5 # 5e-4 for stock training (not controller)
+learning_rate: 5e-4 # 5e-4 for stock training (controller uses 1e-3)
 
 num_epochs: 100
 
