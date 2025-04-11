@@ -133,14 +133,6 @@ def main(args):
         with torch.no_grad():
             data, gt_pos = batch['data'], batch['gt_pos']
             gt_pos = gt_pos.to(device)[:, 0]
-            # if args.test_type == 'continuous':
-            #     data, _ = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
-            # elif args.test_type == 'finite':
-            #     data, _ = transform_finite_noise(data, args.batch_size, img_std_max=3, depth_std_max=0.75)
-            # elif args.test_type == 'discrete':
-            #     data, _ = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
-            # else:
-            #     raise Exception('Invalid test type specified')
             start = time.time()
             results = model(data) # Evaluate on test data
             total_model_time += time.time() - start
@@ -183,9 +175,6 @@ def main(args):
         f.write('\nDropped_layers Img' + str(args.drop_layers_img))
     if args.drop_layers_depth:
         f.write('\nDropped_layers Depth' + str(args.drop_layers_depth))
-    #f.write("\nComputed NLL Test Loss " + str(total_nll_loss / len(mse_arr)))
-    #f.write("\nComputed MSE Test Loss " + str(total_mse_loss / len(mse_arr)))
-    #f.write("\nMedian MSE Loss " + str(sorted(mse_arr)[int(len(mse_arr)/2)]))
     f.write("\nAverage Distance " + str(average_dist / len(mse_arr)))
     #f.write("\nAverage KF distance " + str(avg_distance_KF / len(mse_arr)))
     f.write("\nLatency " + str(total_model_time))

@@ -1,14 +1,10 @@
-import numpy as np
 from tqdm import tqdm, trange
 import torch
 import torch.nn as nn
-from torch.optim import Adam
-from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
-from models.GTDM_Model import GTDM_Controller, Conv_GTDM_Controller
+from models.GTDM_Model import Conv_GTDM_Controller
 from PickleDataset import PickleDataset
 from tracker import TorchMultiObsKalmanFilter
-from video_generator import VideoGenerator
 from cache_datasets import cache_data
 import configargparse
 import time
@@ -143,14 +139,6 @@ def main(args):
         with torch.no_grad():
             data, gt_pos = batch['data'], batch['gt_pos']
             gt_pos = gt_pos.to(device)[:, 0]
-            # if args.test_type == 'continuous':
-            #     data, _ = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
-            # elif args.test_type == 'finite':
-            #     data, _ = transform_finite_noise(data, args.batch_size, img_std_max=3, depth_std_max=0.75)
-            # elif args.test_type == 'discrete':
-            #     data, _ = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
-            # else:
-            #     raise Exception('Invalid test type specified')
             start = time.time()
             results, _ = model(data, discretization_method=args.discretization_method) # Evaluate on test data
             total_model_time += time.time() - start
@@ -189,12 +177,8 @@ def main(args):
 
     print("Finished running model inference, generating video with total test loss", total_nll_loss / (len(test_dataloader)))
     f = open(dir_path + "test_loss.txt", "w")
-    #f.write("\nComputed NLL Test Loss " + str(total_nll_loss / len(mse_arr)))
-    #f.write("\nComputed MSE Test Loss " + str(total_mse_loss / len(mse_arr)))
-    #f.write("\nMedian MSE Loss " + str(sorted(mse_arr)[int(len(mse_arr)/2)]))
     f.write("\nAverage Distance " + str(average_dist / len(mse_arr)))
     f.write("\nLatency " + str(total_model_time))
-    #f.write("\nAverage KF distance " + str(avg_distance_KF / len(mse_arr)))
     f.close()
     # Write the predictions and the gts
     f = open(dir_path + "predictions.txt", "a")

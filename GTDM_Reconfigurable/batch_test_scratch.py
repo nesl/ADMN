@@ -100,7 +100,6 @@ def get_args_parser():
 def main(args):
     folder = str(args.folder)
     cache_data(args)
-    #import pdb; pdb.set_trace()
     # Point test.py to appropriate log folder containing the saved model weights
     dir_path = folder + '/'
     # Create model architecture
@@ -133,14 +132,6 @@ def main(args):
         with torch.no_grad():
             data, gt_pos = batch['data'], batch['gt_pos']
             gt_pos = gt_pos.to(device)[:, 0]
-            # if args.test_type == 'continuous':
-            #     data, _ = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
-            # elif args.test_type == 'finite':
-            #     data, _ = transform_finite_noise(data, args.batch_size, img_std_max=3, depth_std_max=0.75)
-            # elif args.test_type == 'discrete':
-            #     data, _ = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
-            # else:
-            #     raise Exception('Invalid test type specified')
             start = time.time()
             results = model(data) # Evaluate on test data
             total_model_time += time.time() - start
@@ -150,7 +141,6 @@ def main(args):
             # Even if 3D, we only plot 2D so we take only x and y
             for result in results.values(): # This only runs once even with > 1 batch size
                 for i in range(len(result['pred_mean'])):
-                    # import pdb; pdb.set_trace()
                     predicted_means = result['pred_mean'][i][0:2] # Extract only x and y
                     predicted_covs = result['pred_cov'][i][0:2, 0:2]
                     predicted_means = predicted_means.cpu().detach()
@@ -179,15 +169,7 @@ def main(args):
 
     print("Finished running model inference, generating video with total test loss", total_nll_loss / (len(test_dataloader)))
     f = open(dir_path + "test_loss.txt", "a")
-    # if args.drop_layers_img:
-    #     f.write('\nDropped_layers Img' + str(args.drop_layers_img))
-    # if args.drop_layers_depth:
-    #     f.write('\nDropped_layers Depth' + str(args.drop_layers_depth))
-    #f.write("\nComputed NLL Test Loss " + str(total_nll_loss / len(mse_arr)))
-    #f.write("\nComputed MSE Test Loss " + str(total_mse_loss / len(mse_arr)))
-    #f.write("\nMedian MSE Loss " + str(sorted(mse_arr)[int(len(mse_arr)/2)]))
     f.write("\nAverage Distance " + str(average_dist / len(mse_arr)))
-    #f.write("\nAverage KF distance " + str(avg_distance_KF / len(mse_arr)))
     f.write("\nLatency " + str(total_model_time))
     f.close()
     # Write the predictions and the gts
