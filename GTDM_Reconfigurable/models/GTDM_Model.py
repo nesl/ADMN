@@ -31,35 +31,38 @@ class GTDM_Early(nn.Module):
         heads = 4
 
         # Initialize the vision backbone
-        self.vision = VisionTransformer(
-            patch_size=16, embed_dim=768, depth=vision_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
-            norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_img)
-        # Load in pretrained weights and freeze params if 12 layers ONLY
-        if vision_vit_layers == 12:
-            print(self.vision.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
-            # Freeze the parameters, leave only the last layer unfrozen
-            for param in self.vision.parameters():
-                param.requires_grad = False
-            for param in self.vision.blocks[11].parameters():
-                param.requires_grad = True
+        if 'zed_camera_left' in valid_mods:
+            self.vision = VisionTransformer(
+                patch_size=16, embed_dim=768, depth=vision_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
+                norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_img)
+            # Load in pretrained weights and freeze params if 12 layers ONLY
+            if vision_vit_layers == 12:
+                print(self.vision.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
+                # Freeze the parameters, leave only the last layer unfrozen
+                for param in self.vision.parameters():
+                    param.requires_grad = False
+                for param in self.vision.blocks[11].parameters():
+                    param.requires_grad = True
+            self.vision_adapter = adapters.Adapter(768, adapter_hidden_dim)
 
         # Initialize the depth transformer, keeping the last two layers unfrozen
-        self.depth = VisionTransformer(
-            patch_size=16, embed_dim=768, depth=depth_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
-            norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_depth)
-        # Load in pretrained weights and freeze params if 12 layers ONLY
-        if depth_vit_layers == 12:
-            print(self.depth.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
-            for param in self.depth.parameters():
-                param.requires_grad = False
-            for param in self.depth.blocks[10].parameters():
-                param.requires_grad = True
-            for param in self.depth.blocks[11].parameters():
-                param.requires_grad = True
+        if 'realsense_camera_depth' in valid_mods:
+            self.depth = VisionTransformer(
+                patch_size=16, embed_dim=768, depth=depth_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
+                norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_depth)
+            # Load in pretrained weights and freeze params if 12 layers ONLY
+            if depth_vit_layers == 12:
+                print(self.depth.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
+                for param in self.depth.parameters():
+                    param.requires_grad = False
+                for param in self.depth.blocks[10].parameters():
+                    param.requires_grad = True
+                for param in self.depth.blocks[11].parameters():
+                    param.requires_grad = True
 
-        # Transforms the output of the backbones into a common latent space
-        self.vision_adapter = adapters.Adapter(768, adapter_hidden_dim)
-        self.depth_adapter = adapters.Adapter(768, adapter_hidden_dim)
+            # Transforms the output of the backbones into a common latent space
+            
+            self.depth_adapter = adapters.Adapter(768, adapter_hidden_dim)
 
         # This performs multimodal fusion on the embeddings
         self.encoder = TransformerEnc(dim=dim_dec, depth=depth_dec, heads=heads, dim_head=dim_dec//heads, mlp_dim=3*dim_dec)

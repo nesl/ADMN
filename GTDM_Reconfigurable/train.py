@@ -149,8 +149,10 @@ def main(args):
         model.train()
         # Gradually increase layerdrop rate to ensure good learning
         if epoch % 10 == 9:
-            model.vision.layerdrop_rate = min(args.max_layerdrop, model.vision.layerdrop_rate + 0.1)
-            model.depth.layerdrop_rate = min(args.max_layerdrop, model.depth.layerdrop_rate + 0.1)
+            if 'zed_camera_left' in args.valid_mods:
+                model.vision.layerdrop_rate = min(args.max_layerdrop, model.vision.layerdrop_rate + 0.1)
+            if 'realsense_camera_depth' in args.valid_mods:
+                model.depth.layerdrop_rate = min(args.max_layerdrop, model.depth.layerdrop_rate + 0.1)
         for batch in train_dataloader:
             batch_num += 1
             optimizer.zero_grad()
@@ -177,12 +179,10 @@ def main(args):
                     pos_neg_log_probs = -batch_results[key]['dist'][i].log_prob(torch.squeeze(gt_pos[i][:, [0, 2]])) # Computes NLL loss for each node/modality combo
                     train_loss += pos_neg_log_probs + 0.05 * loss_mse # Accumulate all the losses into the batch loss
                     with torch.no_grad(): # Get the average distance during train to log
-                        ad_train_loss += loss_mse 
+                        ad_train_loss += loss_mse / (batch_size * len(batch_results.keys()))
             train_loss /= (batch_size * len(batch_results.keys())) # Normalize wrt batch size and number of modality node combinations
             
             with torch.no_grad():
-                # No need to track grads for ad train loss
-                ad_train_loss /= (batch_size * len(batch_results.keys()))
                 # Print one sample from the batch to see prediction result and loss
                 print('Batch Number', batch_num)
                 key = 'early_fusion'
@@ -225,8 +225,14 @@ def main(args):
                 epoch_val_loss += val_loss
             epoch_val_loss /= batch_num
             print("Validation loss", epoch_val_loss)
+        vision_layerdrop_rate = 0.0
+        depth_layerdrop_rate = 0.0
+        if 'zed_camera_left' in args.valid_mods:
+            vision_layerdrop_rate = model.vision.layerdrop_rate
+        if 'realsense_camera_depth' in args.valid_mods:
+            depth_layerdrop_rate = model.depth.layerdrop_rate
         with open( './logs/' + dt_string + '/log.txt', 'a') as handle:
-            print('Epoch ' + str(epoch) + ' | Train loss ' + str(ad_train_loss) + ' | Val Loss ' + str(epoch_val_loss) + ' | Dropout ' + str(model.vision.layerdrop_rate) + ' ' + str(model.depth.layerdrop_rate)
+            print('Epoch ' + str(epoch) + ' | Train loss ' + str(ad_train_loss) + ' | Val Loss ' + str(epoch_val_loss) + ' | Dropout ' + str(vision_layerdrop_rate) + ' ' + str(depth_layerdrop_rate)
                   , file=handle)
         torch.save(model.state_dict(), './logs/' + dt_string + '/last.pt')
                 
