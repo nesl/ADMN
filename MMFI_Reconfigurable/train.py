@@ -39,6 +39,7 @@ def get_args_parser():
     parser.add_argument('--max_layerdrop', type=float, default=0.2, help="LayerDrop Rate for training")
     parser.add_argument('--vision_vit_layers', type=int, default=12)
     parser.add_argument('--depth_vit_layers', type=int, default=12)
+    parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'depth'], help="List of valid modalities")
 
 
     args = parser.parse_args()
@@ -78,7 +79,7 @@ def main(args):
     
 
     # Create the overall model and load on appropriate device
-    model = MMFI_Early(layerdrop=0.0, vision_vit_layers=args.vision_vit_layers, depth_vit_layers=args.depth_vit_layers)
+    model = MMFI_Early(layerdrop=0.0, vision_vit_layers=args.vision_vit_layers, depth_vit_layers=args.depth_vit_layers, valid_mods=args.valid_mods)
     model.to(device)
 
 
@@ -100,7 +101,9 @@ def main(args):
         scheduler.step()
         # Gradually increase layerdrop rate to ensure good learning
         if epoch % 10 == 9:
-            model.vision.layerdrop_rate = min(args.max_layerdrop, model.vision.layerdrop_rate + 0.1)
+            if 'image' in args.valid_mods:
+                model.vision.layerdrop_rate = min(args.max_layerdrop, model.vision.layerdrop_rate + 0.1)
+            if 'depth' in args.valid_mods:
             model.depth.layerdrop_rate = min(args.max_layerdrop, model.depth.layerdrop_rate + 0.1)
         train_gt_labels = []
         train_pred_labels = []

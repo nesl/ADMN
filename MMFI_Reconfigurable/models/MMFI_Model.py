@@ -24,50 +24,56 @@ from models.timm_vit import VisionTransformer
 from timm.models.vision_transformer import Block, DropoutBlock
 
 class MMFI_Early(nn.Module):
-    def __init__(self, drop_layers_img = None, drop_layers_depth=None, layerdrop=0.0, vision_vit_layers=12, depth_vit_layers=12):
+    def __init__(self, drop_layers_img = None, drop_layers_depth=None, layerdrop=0.0, vision_vit_layers=12, depth_vit_layers=12, valid_mods=['image', 'depth']):
         super(MMFI_Early, self).__init__()
         # Parameters used for multimodal fusion transformer
         dim_dec = 64 # USed to be 256
         depth_dec = 6 # previously 6
         heads = 4
 
-        # Initialize the vision backbone
-        self.vision = VisionTransformer(
-            patch_size=16, embed_dim=768, depth=vision_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
-            norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_img)
-        if vision_vit_layers == 12:
-            print(self.vision.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
-            # Freeze the parameters, leave only the last layer unfrozen
-            for param in self.vision.parameters():
-                param.requires_grad = False
-            for block_num in range(11, 12):
-                for param in self.vision.blocks[block_num].parameters():
-                    param.requires_grad = True
-        # Initialize the depth transformer, keeping the last two layers unfrozen
-        self.depth = VisionTransformer(
-            patch_size=16, embed_dim=768, depth=depth_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
-            norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_depth)
-        #self.num_layer_embeds = nn.Embedding(13, dim_dec)
-        if depth_vit_layers == 12:
-            print(self.depth.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
-            for param in self.depth.parameters():
-                param.requires_grad = False
-            for block_num in range(11, 12):
-                for param in self.depth.blocks[block_num].parameters():
-                    param.requires_grad = True
-          
+        self.valid_mods = valid_mods
+
+        if 'image' in valid_mods:
+            # Initialize the vision backbone
+            self.vision = VisionTransformer(
+                patch_size=16, embed_dim=768, depth=vision_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
+                norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_img)
+            if vision_vit_layers == 12:
+                print(self.vision.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
+                # Freeze the parameters, leave only the last layer unfrozen
+                for param in self.vision.parameters():
+                    param.requires_grad = False
+                for block_num in range(11, 12):
+                    for param in self.vision.blocks[block_num].parameters():
+                        param.requires_grad = True
+            self.vision_adapter = nn.Sequential(
+                nn.Linear(768, 400),
+                nn.ReLU(),
+                nn.Linear(400, dim_dec)
+            )
+        if 'depth' in valid_mods:
+            # Initialize the depth transformer, keeping the last two layers unfrozen
+            self.depth = VisionTransformer(
+                patch_size=16, embed_dim=768, depth=depth_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
+                norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_depth)
+            #self.num_layer_embeds = nn.Embedding(13, dim_dec)
+            if depth_vit_layers == 12:
+                print(self.depth.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
+                for param in self.depth.parameters():
+                    param.requires_grad = False
+                for block_num in range(11, 12):
+                    for param in self.depth.blocks[block_num].parameters():
+                        param.requires_grad = True
+            self.depth_adapter = nn.Sequential(
+                nn.Linear(768, 400),
+                nn.ReLU(),
+                nn.Linear(400, dim_dec)
+            )
+            
         self.encoder_cls = nn.Parameter(torch.rand(1, 1, dim_dec))
         self.encoder = TransformerEnc(dim=dim_dec, depth=depth_dec, heads=heads, dim_head=dim_dec//heads, mlp_dim=3*dim_dec)
-        self.vision_adapter = nn.Sequential(
-            nn.Linear(768, 400),
-            nn.ReLU(),
-            nn.Linear(400, dim_dec)
-        )
-        self.depth_adapter = nn.Sequential(
-            nn.Linear(768, 400),
-            nn.ReLU(),
-            nn.Linear(400, dim_dec)
-        )
+        
+        
  
         self.output_head = nn.Linear(dim_dec, 27)
 
@@ -80,7 +86,7 @@ class MMFI_Early(nn.Module):
         
         
         outlist = []
-        if 'rgb' in data.keys():
+        if 'image' in self.valid_mods:
             # 1 indicates that we keep this layer, 0 indicates that it is dropped
             if self.training:
                 # Initialize ONE noise vector for the entire batch and for all distributed cameras
@@ -103,7 +109,7 @@ class MMFI_Early(nn.Module):
             out = self.vision_adapter(out) # run through the adapter, use this to gate how large I want to make the time encoder
             out = torch.reshape(out, (batch_size, num_frames, -1))
             outlist.append(out)
-        if 'depth' in data.keys():
+        if 'depth' in self.valid_mods:
             if self.training:
                 dropped_layers_depth = (torch.rand(12) > self.depth.layerdrop_rate).int().cuda()
                 if torch.rand(1).item() < 0.1:
