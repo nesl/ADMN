@@ -4,10 +4,10 @@ from tqdm import trange
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from PickleDataset import PickleDataset
+from PickleDataset import PickleDataset, transform_noise, transform_finite_noise, transform_discrete_noise
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
-from cacher import cache_data
+from cache_datasets import cache_data
 from models.layer_controller import Conv_Controller_AE
 from sklearn.metrics import accuracy_score
 from torchvision.transforms import Resize
@@ -36,7 +36,7 @@ def get_args_parser():
     parser.add("--save_every_X_model", type=int, default=5, help="Save model every X epochs")
     parser.add('--total_layers', type=int, default=8, help="How many layers to reduce to")
     parser.add('--seedVal', type=int, default=100, help="Seed for training")
-    parser.add('--train_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
+    parser.add('--train_type', type=str, default='discrete', choices=['continuous', 'discrete', 'finite'])
     parser.add('--discretization_method', type=str, default='admn', choices=['admn', 'straight_through', 'progressive'])
     parser.add("--temp", type=float, default=1, help="Learning rate for training")
     # Parse arguments from the configuration file and command-line
@@ -167,7 +167,7 @@ def main(args):
     
 
     optimizer = Adam(model.parameters())
-    scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, total_iters=args.num_epochs)
+    scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.001, total_iters=args.num_epochs)
     writer = SummaryWriter(log_dir='./logs/' + dt_string) # Implement tensorboard
     loss_fn = torch.nn.MSELoss()
     # Training loop
@@ -183,15 +183,26 @@ def main(args):
         resizer = Resize((100, 100))
         
         for batch in train_dataloader:
+            data, gt_pos = batch['data'], batch['gt_pos']
+            if args.train_type == 'continuous':
+                data, gt_noise = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
+            elif args.train_type == 'finite':
+                data, gt_noise = transform_finite_noise(data, args.batch_size, img_std_max=3, depth_std_max=0.75)
+            elif args.train_type == 'discrete':
+                data, gt_noise = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
+            else:
+                raise Exception('Invalid test type specified')
             batch_num += 1 
             for mod in args.valid_mods:
+                if 'mocap' in mod:
+                    continue
                 for node in args.valid_nodes:
                     key = (mod, 'node_' + str(node))
-                    batch[key] = resizer(batch[key]).cuda
+                    data[key] = resizer(data[key]).cuda()
 
             # Forward pass gives us the loc results and the predicted noise of each modality
-            img_recon, depth_recon = model(batch, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes) #Dictionary
-            train_loss = loss_fn(img_recon, batch['zed_camera_left', 'node_1']) + loss_fn(depth_recon, batch['realsense_camera_depth', 'node_1']) # Compare to the first frame of the image data
+            img_recon, depth_recon = model(data, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes) #Dictionary
+            train_loss = loss_fn(img_recon, data['zed_camera_left', 'node_1']) + loss_fn(depth_recon[:, 0], data['realsense_camera_depth', 'node_1'][:, 0]) # Compare to the first frame of the image data
            
             with torch.no_grad():
                 epoch_train_loss += train_loss
@@ -215,18 +226,30 @@ def main(args):
 
             for batch in val_dataloader:
                 batch_num += 1
+                data, gt_pos = batch['data'], batch['gt_pos']
+                if args.train_type == 'continuous':
+                    data, gt_noise = transform_noise(data, args.batch_size, img_std_max=4, depth_std_max=0.75)
+                elif args.train_type == 'finite':
+                    data, gt_noise = transform_finite_noise(data, args.batch_size, img_std_max=3, depth_std_max=0.75)
+                elif args.train_type == 'discrete':
+                    data, gt_noise = transform_discrete_noise(data, args.batch_size, img_std_candidates=[0, 1, 2, 3], depth_std_candidates=[0, 0.25, 0.5, 0.75])
+                else:
+                    raise Exception('Invalid test type specified')
                 # Each batch is a dictionary containing all the sensor data, and the ground truth positions
                 for mod in args.valid_mods:
+                    if 'mocap' in mod:
+                        continue
                     for node in args.valid_nodes:
                         key = (mod, 'node_' + str(node))
-                        batch[key] = resizer(batch[key]).cuda
+                        data[key] = resizer(data[key]).cuda()
 
             # Forward pass gives us the loc results and the predicted noise of each modality
-                img_recon, depth_recon = model(batch, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes) #Dictionary
-                val_loss = loss_fn(img_recon, batch['zed_camera_left', 'node_1']) + loss_fn(depth_recon, batch['realsense_camera_depth', 'node_1'])
+                gt_depth_data = data['realsense_camera_depth', 'node_1'][:, 0][:, None]
+                img_recon, depth_recon = model(data, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes) #Dictionary
+                val_loss = loss_fn(img_recon, data['zed_camera_left', 'node_1']) + loss_fn(depth_recon, gt_depth_data)
                 if batch_num == 2:
-                    save_reconstructions(img_recon, batch['zed_camera_left', 'node_1'], './output_images/' + str(epoch) + 'img.png')
-                    save_reconstructions(depth_recon, batch['realsense_camera_depth', 'node_1'], './output_images/' + str(epoch) + 'depth.png')
+                    save_reconstructions(img_recon, data['zed_camera_left', 'node_1'], './output_images/' + str(epoch) + 'img.png')
+                    save_reconstructions(depth_recon, gt_depth_data, './output_images/' + str(epoch) + 'depth.png')
                 print('Batch Number', batch_num, "Val Loss", val_loss)
                 epoch_val_loss += val_loss
  

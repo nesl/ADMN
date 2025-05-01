@@ -235,7 +235,7 @@ class Conv_Controller_AE(nn.Module):
                 nn.ConvTranspose2d(in_channels=1, out_channels=32, kernel_size=(14, 14)),
                 nn.BatchNorm2d(num_features=32),
                 nn.ReLU(),
-                nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(12, 8), stride=(3, 2)),
+                nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(12, 12), stride=(3, 3)),
                 nn.BatchNorm2d(num_features=32),
                 nn.ReLU(),
                 nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=(5, 5)),
@@ -244,7 +244,7 @@ class Conv_Controller_AE(nn.Module):
                 nn.ConvTranspose2d(in_channels=1, out_channels=32, kernel_size=(14, 14)),
                 nn.BatchNorm2d(num_features=32),
                 nn.ReLU(),
-                nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(12, 8), stride=(3, 2)),
+                nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(12, 12), stride=(3, 3)),
                 nn.BatchNorm2d(num_features=32),
                 nn.ReLU(),
                 nn.ConvTranspose2d(in_channels=32, out_channels=1, kernel_size=(5, 5)),
@@ -259,6 +259,7 @@ class Conv_Controller_AE(nn.Module):
         if 'zed_camera_left' in valid_mods:
             for node in valid_nodes:
                 key = ('zed_camera_left', 'node_' + str(node))
+              
                 out = self.encoder_dict[key[0]](batched_data[key])
                 conv_embeds.append(out)
 
@@ -267,15 +268,14 @@ class Conv_Controller_AE(nn.Module):
                 key = ('realsense_camera_depth', 'node_' + str(node))
                 out = self.encoder_dict[key[0]](batched_data[key])
                 conv_embeds.append(out)
-
-        conv_embeds = torch.cat(conv_embeds, dim=1)
+        conv_embeds = torch.stack(conv_embeds, dim=1)
         B = conv_embeds.shape[0]
         
         cls_tokens = self.cls.expand(B, -1, -1) 
         x = torch.cat((cls_tokens, conv_embeds), dim=1)
         x += positionalencoding1d(self.cls.shape[-1], x.shape[1])
         x = self.combiner_encoder(x)[:, 0] # Get CLS output
-        x = torch.reshape(x, (-1, 1, 16, 32))
+        x = torch.reshape(x, (-1, 1, 16, 16))
         
         img_recon = self.decoder_dict['zed_camera_left'](x)
         depth_recon = self.decoder_dict['realsense_camera_depth'](x)
