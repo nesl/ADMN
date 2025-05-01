@@ -3,6 +3,7 @@ import torch.nn as nn
 from models.vit_dev import TransformerEnc, positionalencoding1d
 from torchvision import transforms
 import numpy as np
+from einops import rearrange
 
 EPSILON = np.finfo(np.float32).tiny
 
@@ -197,6 +198,88 @@ class ConvLayerController(nn.Module):
         else:
             raise Exception('Invalid discretization')
 
+
+
+
+class Conv_Controller_AE(nn.Module):
+    # Total layer refers to the total available compute budget
+    def __init__(self, embed_dim=256, depth=4, num_heads=4, mlp_ratio=4):
+        super(Conv_Controller_AE, self).__init__()
+        # Do the respective resizes before the AE function
+        self.encoder_dict = nn.ModuleDict({
+            'zed_camera_left': nn.Sequential(
+                nn.Conv2d(in_channels=3, out_channels=6, kernel_size=(10, 10)),
+                nn.ReLU(),
+                nn.Conv2d(in_channels=6, out_channels=6, kernel_size=(10, 10)),
+                nn.ReLU(),
+                nn.MaxPool2d((3, 3)),
+                nn.Conv2d(in_channels=6, out_channels=3, kernel_size=(5, 5)),
+                nn.ReLU(),
+                nn.Flatten(1, -1),
+                nn.Linear(1587, embed_dim)
+            ),
+            'realsense_camera_depth': nn.Sequential(
+                nn.Conv2d(in_channels=3, out_channels=6, kernel_size=(10, 10)),
+                nn.ReLU(),
+                nn.Conv2d(in_channels=6, out_channels=6, kernel_size=(10, 10)),
+                nn.ReLU(),
+                nn.MaxPool2d((3, 3)),
+                nn.Conv2d(in_channels=6, out_channels=3, kernel_size=(5, 5)),
+                nn.ReLU(),
+                nn.Flatten(1, -1),
+                nn.Linear(1587, embed_dim)
+            ),
+        })
+        self.decoder_dict = nn.ModuleDict({
+            'zed_camera_left': nn.Sequential(
+                nn.ConvTranspose2d(in_channels=1, out_channels=32, kernel_size=(14, 14)),
+                nn.BatchNorm2d(num_features=32),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(12, 8), stride=(3, 2)),
+                nn.BatchNorm2d(num_features=32),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=(5, 5)),
+            ),
+            'realsense_camera_depth': nn.Sequential(
+                nn.ConvTranspose2d(in_channels=1, out_channels=32, kernel_size=(14, 14)),
+                nn.BatchNorm2d(num_features=32),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(12, 8), stride=(3, 2)),
+                nn.BatchNorm2d(num_features=32),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels=32, out_channels=1, kernel_size=(5, 5)),
+            ),
+        })
+        # Fuses the information together to output joint layer config of all modalities
+        self.combiner_encoder = TransformerEnc(embed_dim, depth, num_heads, dim_head=embed_dim//num_heads, mlp_dim=mlp_ratio * embed_dim)
+        self.cls = nn.Parameter(torch.randn(1, embed_dim))
+        
+    def forward(self, batched_data, valid_mods, valid_nodes):
+        conv_embeds = []
+        if 'zed_camera_left' in valid_mods:
+            for node in valid_nodes:
+                key = ('zed_camera_left', 'node_' + str(node))
+                out = self.encoder_dict[key[0]](batched_data[key])
+                conv_embeds.append(out)
+
+        if 'realsense_camera_depth' in valid_mods:
+            for node in valid_nodes:
+                key = ('realsense_camera_depth', 'node_' + str(node))
+                out = self.encoder_dict[key[0]](batched_data[key])
+                conv_embeds.append(out)
+
+        conv_embeds = torch.cat(conv_embeds, dim=1)
+        B = conv_embeds.shape[0]
+        
+        cls_tokens = self.cls.expand(B, -1, -1) 
+        x = torch.cat((cls_tokens, conv_embeds), dim=1)
+        x += positionalencoding1d(self.cls.shape[-1], x.shape[1])
+        x = self.combiner_encoder(x)[:, 0] # Get CLS output
+        x = torch.reshape(x, (-1, 1, 16, 32))
+        
+        img_recon = self.decoder_dict['zed_camera_left'](x)
+        depth_recon = self.decoder_dict['realsense_camera_depth'](x)
+        return img_recon, depth_recon
 
 
 
