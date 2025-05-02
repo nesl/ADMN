@@ -104,7 +104,7 @@ def main(args):
             if 'image' in args.valid_mods:
                 model.vision.layerdrop_rate = min(args.max_layerdrop, model.vision.layerdrop_rate + 0.1)
             if 'depth' in args.valid_mods:
-            model.depth.layerdrop_rate = min(args.max_layerdrop, model.depth.layerdrop_rate + 0.1)
+                model.depth.layerdrop_rate = min(args.max_layerdrop, model.depth.layerdrop_rate + 0.1)
         train_gt_labels = []
         train_pred_labels = []
         for batch in train_dataloader:

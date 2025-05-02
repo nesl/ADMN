@@ -175,11 +175,11 @@ class ConvLayerController(nn.Module):
         conv_embeds = []
         if 'rgb' in batched_data.keys():
             b, n, c, h, w = batched_data['rgb'].shape
-            out = self.encoder_dict['rgb'](torch.reshape(batched_data['rgb'][:, 0:3], (-1, c, h, w))) # Take only the noise of the first frame
+            out = self.encoder_dict['rgb'](torch.reshape(batched_data['rgb'][:, 0:3], (-1, c, h, w))) # Take only the noise of the first three frames
             conv_embeds.append(torch.reshape(out, (b, 3, -1)))
         if 'depth' in batched_data.keys():
             b, n, c, h, w = batched_data['depth'].shape
-            out = self.encoder_dict['depth'](torch.reshape(batched_data['depth'][:, 0:3], (-1, c, h, w))) # Take only the noise of the first frame
+            out = self.encoder_dict['depth'](torch.reshape(batched_data['depth'][:, 0:3], (-1, c, h, w))) # Take only the noise of the first three frames
             conv_embeds.append(torch.reshape(out, (b, 3, -1)))
         conv_embeds = torch.cat(conv_embeds, dim=1)
         B = conv_embeds.shape[0]
@@ -218,6 +218,86 @@ class ConvLayerController(nn.Module):
         discretized = torch.unsqueeze(discretized, dim=1).repeat((1, batched_data['depth'].shape[1], 1, 1))
 
         return gumbel_samples + (discretized - gumbel_samples).detach(), predicted_noise * 5
+
+
+
+class Conv_Controller_AE(nn.Module):
+    # Total layer refers to the total available compute budget
+    def __init__(self, embed_dim=256, depth=4, num_heads=4, mlp_ratio=4):
+        super(Conv_Controller_AE, self).__init__()
+        # Do the respective resizes before the AE function
+        self.encoder_dict = nn.ModuleDict({
+            'rgb': nn.Sequential(
+                nn.Conv2d(in_channels=3, out_channels=6, kernel_size=(10, 10)),
+                nn.ReLU(),
+                nn.Conv2d(in_channels=6, out_channels=6, kernel_size=(10, 10)),
+                nn.ReLU(),
+                nn.MaxPool2d((3, 3)),
+                nn.Conv2d(in_channels=6, out_channels=3, kernel_size=(5, 5)),
+                nn.ReLU(),
+                nn.Flatten(1, -1),
+                nn.Linear(1587, embed_dim)
+            ),
+            'depth': nn.Sequential(
+                nn.Conv2d(in_channels=3, out_channels=6, kernel_size=(10, 10)),
+                nn.ReLU(),
+                nn.Conv2d(in_channels=6, out_channels=6, kernel_size=(10, 10)),
+                nn.ReLU(),
+                nn.MaxPool2d((3, 3)),
+                nn.Conv2d(in_channels=6, out_channels=3, kernel_size=(5, 5)),
+                nn.ReLU(),
+                nn.Flatten(1, -1),
+                nn.Linear(1587, embed_dim)
+            ),
+        })
+        self.decoder_dict = nn.ModuleDict({
+            'rgb': nn.Sequential(
+                nn.ConvTranspose2d(in_channels=1, out_channels=32, kernel_size=(14, 14)),
+                nn.BatchNorm2d(num_features=32),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(12, 12), stride=(3, 3)),
+                nn.BatchNorm2d(num_features=32),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=(5, 5)),
+            ),
+            'depth': nn.Sequential(
+                nn.ConvTranspose2d(in_channels=1, out_channels=32, kernel_size=(14, 14)),
+                nn.BatchNorm2d(num_features=32),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=(12, 12), stride=(3, 3)),
+                nn.BatchNorm2d(num_features=32),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=(5, 5)),
+            ),
+        })
+        # Fuses the information together to output joint layer config of all modalities
+        self.combiner_encoder = TransformerEnc(embed_dim, depth, num_heads, dim_head=embed_dim//num_heads, mlp_dim=mlp_ratio * embed_dim)
+        self.cls = nn.Parameter(torch.randn(1, embed_dim))
+        
+    def forward(self, image_data = None, depth_data = None):
+        conv_embeds = []
+        
+
+        b, n, c, h, w = image_data.shape
+        out = self.encoder_dict['rgb'](torch.reshape(image_data[:, 0:3], (-1, c, h, w))) # Take only the noise of the first three frames
+        conv_embeds.append(torch.reshape(out, (b, 3, -1)))
+
+        b, n, c, h, w = depth_data.shape
+        out = self.encoder_dict['depth'](torch.reshape(depth_data[:, 0:3], (-1, c, h, w))) # Take only the noise of the first three frames
+        conv_embeds.append(torch.reshape(out, (b, 3, -1)))
+        
+        conv_embeds = torch.cat(conv_embeds, dim=1)
+        B = conv_embeds.shape[0]
+        
+        cls_tokens = self.cls.expand(B, -1, -1) 
+        x = torch.cat((cls_tokens, conv_embeds), dim=1)
+        x += positionalencoding1d(self.cls.shape[-1], x.shape[1])
+        x = self.combiner_encoder(x)[:, 0] # Get CLS output
+        x = torch.reshape(x, (-1, 1, 16, 16))
+        
+        img_recon = self.decoder_dict['rgb'](x)
+        depth_recon = self.decoder_dict['depth'](x)
+        return img_recon, depth_recon
 
 
 

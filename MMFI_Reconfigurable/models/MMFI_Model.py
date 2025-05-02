@@ -21,7 +21,7 @@ from scipy.spatial.transform import Rotation as R
 from einops import rearrange, repeat
 from torchvision.models import resnet18
 from models.timm_vit import VisionTransformer
-from timm.models.vision_transformer import Block, DropoutBlock
+from timm.models.vision_transformer import Block
 
 class MMFI_Early(nn.Module):
     def __init__(self, drop_layers_img = None, drop_layers_depth=None, layerdrop=0.0, vision_vit_layers=12, depth_vit_layers=12, valid_mods=['image', 'depth']):
