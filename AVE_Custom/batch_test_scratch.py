@@ -1,0 +1,106 @@
+from tqdm import tqdm, trange
+import torch
+from torch.utils.data import DataLoader
+from models.GTDM_Model import GTDM_Early
+from PickleDataset import PickleDataset
+from sklearn.metrics import accuracy_score
+import time
+import argparse
+from cacher import cache_data
+from fvcore.nn import FlopCountAnalysis, flop_count_table
+'''
+
+Performing testing on the ADMN controller
+We have a separate, fixed noisy dataset stored under test_datasets to ensure consistent performance
+
+'''
+def computeDist(tensor1, tensor2):
+    tensor1 = torch.squeeze(tensor1)
+    tensor2 = torch.squeeze(tensor2)
+    distance = 0.0
+    for i in range(len(tensor1)):
+        distance += (tensor1[i] - tensor2[i]) ** 2
+    return distance ** 0.5
+
+
+def get_args_parser():
+    parser = argparse.ArgumentParser("Arguments for batch_test_controller")
+    # Define the parameters with their default values and types
+    parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset/', help="Base dataset root")
+    parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'audio'], help="List of valid modalities")
+    parser.add_argument("--adapter_hidden_dim", type=int, default=512, help="Dimension of adapter hidden layers")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
+    parser.add_argument('--total_layers', type=int, default=8, help="How many layers to reduce to")
+    parser.add_argument('--folder', type=str, default='./logs', help='Folder containing the model')
+    parser.add_argument('--checkpoint', type=str, default='last.pt', help="ckpt nane")
+    parser.add_argument('--test_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
+    parser.add_argument('--discretization_method', type=str, default='admn', choices=['admn', 'straight_through', 'progressive'])
+    parser.add_argument('--vit_layers_img', type=int, default=12,  help='Num layers for Img')
+    parser.add_argument('--vit_layers_audio', type=int, default=12, help='Num layers for Audio')
+
+    # Parse arguments from the configuration file and command-line
+    args = parser.parse_args()
+    return args
+
+def main(args):
+
+    folder = str(args.folder)
+    #import pdb; pdb.set_trace()
+    # Point test.py to appropriate log folder containing the saved model weights
+    dir_path = folder + '/'
+    # Create model architecture
+    model = GTDM_Early(args.adapter_hidden_dim, valid_mods=args.valid_mods, vision_vit_layers=args.vit_layers_img, audio_vit_layers=args.vit_layers_audio) # Pass valid mods, nodes, and also hidden layer size
+    # Load model weights
+    print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=False))
+    model.eval() # Set model to eval mode for dropout
+    # Create dataset and dataloader for test
+    cache_data(cached_root='/mnt/ssd_8t/jason/AVE_Dataset_Cached')
+    valset = PickleDataset(data_root = '/mnt/ssd_8t/jason/AVE_Dataset_Cached/', type='test')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    if args.batch_size != 1:
+        raise Exception("Batch size not one, are you sure")
+    test_dataloader = DataLoader(valset, batch_size = args.batch_size, shuffle=False)
+
+    pred_labels = []
+    gt_labels = []
+
+    model.eval()
+    total_model_time = 0.0
+    for batch in tqdm(test_dataloader, desc = 'Computing test loss', leave=False):
+        batch, noise_label = batch
+        with torch.no_grad():
+            for i in range(len(batch)):
+                batch[i] = batch[i].to(device)
+            _, _, label = batch
+            start = time.time()
+            # Flops
+            # flops = FlopCountAnalysis(model, batch)
+            # num_flops = flops.total() / (1000 ** 3)
+            # print(flop_count_table(flops))
+            # print(num_flops)
+            # import pdb; pdb.set_trace()
+            logits = model(batch) # Evaluate on test data
+            total_model_time += time.time() - start
+            # Each modality and node combo has a predicted mean and covariance
+            # Even if 3D, we only plot 2D so we take only x and y
+            pred_labels.append(torch.argmax(logits, dim=-1).cpu())
+            gt_labels.append(label.cpu())
+    pred_labels = torch.cat(pred_labels).numpy()
+    gt_labels = torch.cat(gt_labels).numpy()
+
+
+    print("Finished running model inference with accuracy", accuracy_score(gt_labels, pred_labels))
+    f = open(dir_path + "test_loss.txt", "a")
+    f.write("\nAccuracy " + str(accuracy_score(gt_labels, pred_labels)))
+    f.write("\nLatency " + str(total_model_time))
+    f.close()
+ 
+
+    print(total_model_time)
+
+
+if __name__ == '__main__':
+    args = get_args_parser()
+    main(args)
+

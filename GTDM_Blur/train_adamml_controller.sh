@@ -1,0 +1,5 @@
+python3 train_adamml_controller.py --seed 100 --learning_rate 1e-3 --total_layers 6 --img_ckp_path logs/Vision_6_Layers/last.pt --dep_ckp_path logs/Depth_6_Layers/last.pt --fused_ckp_path logs/6_Layers_Naive_Scratch/last.pt --num_epochs 10 --train_type=discrete
+python3 train_adamml_controller.py --seed 100 --learning_rate 1e-3 --total_layers 12 --img_ckp_path logs/Vision_12_Layers/last.pt --dep_ckp_path logs/Depth_12_Layers/last.pt --fused_ckp_path logs/12_Layers_Naive_Scratch/last.pt --num_epochs 10 --train_type=discrete
+
+python3 train_adamml_controller.py --seed 100 --learning_rate 1e-3 --total_layers 8 --img_ckp_path logs/Vision_8_Layers/last.pt --dep_ckp_path logs/Depth_8_Layers/last.pt --fused_ckp_path logs/8_Layers_Naive_Scratch/last.pt --num_epochs 10 --train_type=discrete
+python3 train_adamml_controller.py --seed 100 --learning_rate 1e-3 --total_layers 16 --img_ckp_path logs/Vision_16_Layers/last.pt --dep_ckp_path logs/Depth_16_Layers/last.pt --fused_ckp_path logs/16_Layers_Naive_Scratch/last.pt --num_epochs 10 --train_type=discrete

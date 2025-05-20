@@ -1,7 +1,12 @@
 Figure_Generation
+AudioMAE
+Depth-Anything-V2
+Generate_Rain
+Old_Files
 *.pth
 *.pt
 **/logs/
 **/log*/
 *.pickle
 **/test_datasets/
+*.png

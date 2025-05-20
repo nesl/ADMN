@@ -1,0 +1,25 @@
+base_root: "/mnt/ssd_8t/jason/IROS/Raw_Datasets/single_view_1"
+
+cache_dir: "/mnt/hdd1/Noisy_Dataset_Cache/Blur/"
+
+valid_mods:
+  - mocap
+  - zed_camera_left
+  - realsense_camera_depth
+
+valid_nodes:
+  - 1
+  - 2
+  - 3
+
+learning_rate: 5e-4 # 5e-4 for stock training (controller uses 1e-3)
+
+num_epochs: 100
+
+adapter_hidden_dim: 512
+
+batch_size: 32
+
+save_best_model: True
+
+save_every_X_model: 5
