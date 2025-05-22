@@ -167,5 +167,5 @@ class PickleDataset:
 
 
 if __name__ == '__main__':
-    dataset = AVE_Dataset('/mnt/ssd_8t/jason/AVE_Dataset/', dataset_txt_file = 'Annotations.txt', dataset_mean=-4.2677393, dataset_std=4.5689974)
+    dataset = AVE_Dataset('/mnt/ssd_8t/redacted/AVE_Dataset/', dataset_txt_file = 'Annotations.txt', dataset_mean=-4.2677393, dataset_std=4.5689974)
     import pdb; pdb.set_trace()

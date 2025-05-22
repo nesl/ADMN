@@ -26,8 +26,8 @@ def computeDist(tensor1, tensor2):
 def get_args_parser():
     parser = argparse.ArgumentParser("Arguments for batch_test_controller")
     # Define the parameters with their default values and types
-    parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset/', help="Base dataset root")
-    parser.add_argument("--cached_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset_Cached/')
+    parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/redacted/AVE_Dataset/', help="Base dataset root")
+    parser.add_argument("--cached_root", type=str, default = '/mnt/ssd_8t/redacted/AVE_Dataset_Cached/')
     parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'audio'], help="List of valid modalities")
     parser.add_argument("--adapter_hidden_dim", type=int, default=512, help="Dimension of adapter hidden layers")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")

@@ -7,8 +7,8 @@ valid_mods = [
 
 valid_nodes=[1, 2, 3]
 
-cache_dir = '/mnt/ssd_8t/jason/MotiviationalStudy/cached_dataset/'
-base_root = '/mnt/ssd_8t/jason/IROS/Raw_Datasets/single_view_1/'
+cache_dir = '/mnt/ssd_8t/redacted/MotiviationalStudy/cached_dataset/'
+base_root = '/mnt/ssd_8t/redacted/IROS/Raw_Datasets/single_view_1/'
 
 
 

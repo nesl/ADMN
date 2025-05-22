@@ -56,7 +56,7 @@ def get_args_parser():
     parser.add('--train_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
     parser.add('--discretization_method', type=str, default='admn', choices=['admn', 'straight_through', 'progressive'])
     parser.add("--temp", type=float, default=1, help="Learning rate for training")
-    parser.add("--pretrained_path", type=str, default='/home/yuyang/adamml_gtdm_lowlight_copy/logs/Good_Model/last.pt', help="path of the pretrained recognition model")
+    parser.add("--pretrained_path", type=str, default='/home/redacted/adamml_gtdm_lowlight_copy/logs/Good_Model/last.pt', help="path of the pretrained recognition model")
     parser.add("--img_ckp_path", type=str, default='logs/AdaMML_Subnet_Img_Test/last.pt', help="path of the pretrained image recognition model")
     parser.add("--dep_ckp_path", type=str, default='logs/AdaMML_Subnet_Dep_Test/last.pt', help="path of the pretrained depth recognition model")
     parser.add("--fused_ckp_path", type=str, default='logs/AdaMML_Subnet_Fusion/last.pt', help="path of the pretrained fused recognition model")

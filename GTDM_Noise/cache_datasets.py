@@ -34,7 +34,7 @@ def cache_data(args):
 #     #future calls (ie during training) will skip the caching step
 
 #     cache_data()
-#     data = PickleDataset('/mnt/nfs/vol2/jason/train')
+#     data = PickleDataset('/mnt/nfs/vol2/redacted/train')
 #     for item in data:
 #         import pdb; pdb.set_trace()
 #     train_dataloader = DataLoader(data, batch_size=64, shuffle=True)

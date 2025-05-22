@@ -4,8 +4,8 @@ import numpy as np
 from pathlib import Path
 import cv2
 
-root_dir = '/mnt/ssd_8t/jason/MotiviationalStudy/cached_dataset/'
-destination_dir = '/mnt/ssd_8t/jason/Noisy_Dataset_Cache/Blur/'
+root_dir = '/mnt/ssd_8t/redacted/MotiviationalStudy/cached_dataset/'
+destination_dir = '/mnt/ssd_8t/redacted/Noisy_Dataset_Cache/Blur/'
 
 
 

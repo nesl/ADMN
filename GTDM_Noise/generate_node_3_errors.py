@@ -3,8 +3,8 @@ import pickle
 import numpy as np
 import torch
 from pathlib import Path
-root_dir = '/mnt/ssd_8t/jason/MotiviationalStudy/cached_dataset/'
-destination_dir = '/mnt/ssd_8t/jason/Noisy_Dataset_Cache/Original/train_node1_errors/'
+root_dir = '/mnt/ssd_8t/redacted/MotiviationalStudy/cached_dataset/'
+destination_dir = '/mnt/ssd_8t/redacted/Noisy_Dataset_Cache/Original/train_node1_errors/'
 
 split = 'train/'
 Path(destination_dir + split).mkdir(parents=True, exist_ok=True)

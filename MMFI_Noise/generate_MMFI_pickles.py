@@ -3,10 +3,10 @@ import numpy as np
 from PIL import Image
 import pickle
 from tqdm import tqdm
-img_root = '/mnt/ssd_8t/jason/all_images/MMFi_Defaced_RGB/'
-depth_root = '/home/jason/Documents/Backups/MMFI_Dataset_backup/'
+img_root = '/mnt/ssd_8t/redacted/all_images/MMFi_Defaced_RGB/'
+depth_root = '/home/redacted/Documents/Backups/MMFI_Dataset_backup/'
 environments = ['E01', 'E02', 'E03', 'E04']
-destination = '/mnt/ssd_8t/jason/MMFI_Pickles_Img_DepthColorized/'
+destination = '/mnt/ssd_8t/redacted/MMFI_Pickles_Img_DepthColorized/'
 
 os.makedirs(destination, exist_ok=True)
 
