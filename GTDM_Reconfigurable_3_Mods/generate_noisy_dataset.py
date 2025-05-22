@@ -2,8 +2,8 @@ import os
 import pickle
 import numpy as np
 from pathlib import Path
-root_dir = '/mnt/ssd_8t/jason/MotiviationalStudy/cached_dataset/'
-destination_dir = '/mnt/ssd_8t/jason/Noisy_Dataset_Cache/AWGN/'
+root_dir = '/mnt/ssd_8t/redacted/MotiviationalStudy/cached_dataset/'
+destination_dir = '/mnt/ssd_8t/redacted/Noisy_Dataset_Cache/AWGN/'
 
 if 'AWGN' in destination_dir:
     for split in ['/train/', '/test/', '/val/']:

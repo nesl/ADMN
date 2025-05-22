@@ -115,7 +115,7 @@ def main(args):
     model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=True)
     model.eval() # Set model to eval mode for dropout
     # Create dataset and dataloader for test
-    testset = PickleDataset('/mnt/hdd1/yuyang/data/Noisy_Dataset_Cache/Blur/test', args.valid_mods, args.valid_nodes)
+    testset = PickleDataset('/mnt/hdd1/redacted/data/Noisy_Dataset_Cache/Blur/test', args.valid_mods, args.valid_nodes)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 

@@ -19,8 +19,8 @@ from cacher import cache_data
 def get_args_parser():
     parser = argparse.ArgumentParser(description='AVE Controller Training, load config file and override params')
     # Define the parameters with their default values and types
-    parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset/', help="Base dataset root")
-    parser.add_argument("--cached_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset_Cached/', help="Base dataset root")
+    parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/redacted/AVE_Dataset/', help="Base dataset root")
+    parser.add_argument("--cached_root", type=str, default = '/mnt/ssd_8t/redacted/AVE_Dataset_Cached/', help="Base dataset root")
     parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'audio'], help="List of valid modalities")
     parser.add_argument("--learning_rate", type=float, default=5e-4, help="Learning rate for training")
     parser.add_argument("--num_epochs", type=int, default=200, help="Number of epochs to train")

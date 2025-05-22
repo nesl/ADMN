@@ -18,7 +18,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser(description='GTDM Controller Testing')
                                      
     # Define the parameters with their default values and types
-    parser.add_argument("--base_root", type=str, default='/mnt/ssd_8t/jason/MMFI_Pickles_Img_DepthColorized', help="Base directory for datasets")
+    parser.add_argument("--base_root", type=str, default='/mnt/ssd_8t/redacted/MMFI_Pickles_Img_DepthColorized', help="Base directory for datasets")
     parser.add_argument("--cache_dir", type=str, help="Directory to cache datasets")
     parser.add_argument("--learning_rate", type=float, default=1e-6, help="Learning rate for training")
     parser.add_argument("--num_epochs", type=int, default=200, help="Number of epochs to train")
