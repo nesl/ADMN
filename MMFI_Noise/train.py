@@ -40,8 +40,8 @@ def get_args_parser():
     parser.add_argument('--vision_vit_layers', type=int, default=12)
     parser.add_argument('--depth_vit_layers', type=int, default=12)
     parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'depth'], help="List of valid modalities")
-
-
+    parser.add_argument('--dir_name', type=str, default='Stage_1_Model')
+    parser.add_argument('--from_scratch', action='store_true', default=False)
     args = parser.parse_args()
     return args
 
@@ -60,9 +60,8 @@ def main(args):
     torch.cuda.manual_seed(seedVal)
     np.random.seed(seedVal)
     # Get current date and time to create new training directory within ./logs/ to store model weights
-    now = datetime.now()
-    dt_string = now.strftime("%d_%m_%Y %H_%M_%S")
-    os.mkdir('./logs/' + dt_string)
+
+    os.mkdir('./logs/' + args.dir_name)
 
     
     #PickleDataset inherits from a Pytorch Dataset, creates train and val datasets
@@ -79,7 +78,7 @@ def main(args):
     
 
     # Create the overall model and load on appropriate device
-    model = MMFI_Early(layerdrop=0.0, vision_vit_layers=args.vision_vit_layers, depth_vit_layers=args.depth_vit_layers, valid_mods=args.valid_mods)
+    model = MMFI_Early(layerdrop=0.0, vision_vit_layers=args.vision_vit_layers, depth_vit_layers=args.depth_vit_layers, valid_mods=args.valid_mods, from_scratch=args.from_scratch)
     model.to(device)
 
 
@@ -89,7 +88,7 @@ def main(args):
     #scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200, eta_min=1e-7)
     scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=1e-3, total_iters=200)
     loss_fn = nn.CrossEntropyLoss()
-    writer = SummaryWriter(log_dir='./logs/' + dt_string) # Implement tensorboard
+    writer = SummaryWriter(log_dir='./logs/' + args.dir_name) # Implement tensorboard
    
    
     # Training loop
@@ -157,16 +156,18 @@ def main(args):
             epoch_val_loss /= batch_num
             print("Validation loss", epoch_val_loss)
             print("Accuracy: ", accuracy_score(gt_labels, pred_labels))
-        with open( './logs/' + dt_string + '/log.txt', 'a') as handle:
+        vision_layerdrop = 0.0 if 'image' not in args.valid_mods else model.vision.layerdrop_rate
+        depth_layerdrop = 0.0 if 'depth' not in args.valid_mods else model.depth.layerdrop_rate
+        with open( './logs/' + args.dir_name + '/log.txt', 'a') as handle:
             print('Epoch ' + str(epoch) + ' | Train loss ' + str(epoch_train_loss) + 
                    ' | Train Accuracy ' + str(accuracy_score(train_gt_labels, train_pred_labels)) + 
                   ' | Val Loss ' + str(epoch_val_loss) + 
                   ' | Val Accuracy ' + str(accuracy_score(gt_labels, pred_labels)) + 
-                  ' | Dropout ' + str(model.vision.layerdrop_rate) + 
-                  ' ' + str(model.depth.layerdrop_rate) +
+                  ' | Dropout ' + str(vision_layerdrop) + 
+                  ' ' + str(depth_layerdrop) +
                   ' | LR ' + str(scheduler.get_lr())
                   , file=handle)
-        torch.save(model.state_dict(), './logs/' + dt_string + '/last.pt')
+        torch.save(model.state_dict(), './logs/' + args.dir_name + '/last.pt')
                 
 
 

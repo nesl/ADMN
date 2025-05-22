@@ -5,13 +5,14 @@ import torch.nn as nn
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
-from models.GTDM_Model import GTDM_Early
+from models.GTDM_Model import AdaMML_SubnetModel
 from PickleDataset import PickleDataset, transform_data
 from tracker import TorchMultiObsKalmanFilter
 from video_generator import VideoGenerator
 from cache_datasets import cache_data
 import configargparse
 import time
+
 def computeDist(tensor1, tensor2):
     tensor1 = torch.squeeze(tensor1)
     tensor2 = torch.squeeze(tensor2)
@@ -19,6 +20,16 @@ def computeDist(tensor1, tensor2):
     for i in range(len(tensor1)):
         distance += (tensor1[i] - tensor2[i]) ** 2
     return distance ** 0.5
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    v = v.lower()
+    if v in ('yes', 'true', 't', '1', 'y'):
+        return True
+    if v in ('no', 'false', 'f', '0', 'n'):
+        return False
+    raise Exception('Boolean value expected.')
 
 def get_args_parser():
     parser = configargparse.ArgumentParser(description='GTDM Controller Testing, load config file and override params',
@@ -38,8 +49,9 @@ def get_args_parser():
     parser.add('--seedVal', type=int, default=100, help="Seed for training")
     parser.add('--folder', type=str, default='./logs', help='Folder containing the model')
     parser.add('--checkpoint', type=str, default='last.pt', help="ckpt nane")
-    parser.add('--vit_layers_img', type=int, default=12,  help='Num layers for Img')
-    parser.add('--vit_layers_depth', type=int, default=12, help='Num layers for Depth')
+    parser.add('--layer_budget', type=int, default=8, help='total layer budget')
+    parser.add('--use_img', type=str2bool, default=True, help='whether to use image as input modality')
+    parser.add('--use_dep', type=str2bool, default=True, help='whether to use depth as input modality')
     parser.add('--test_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
 
     # Parse arguments from the configuration file and command-line
@@ -103,12 +115,19 @@ def main(args):
     # Point test.py to appropriate log folder containing the saved model weights
     dir_path = folder + '/'
     # Create model architecture
-    model = GTDM_Early(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, vision_vit_layers=args.vit_layers_img, depth_vit_layers=args.vit_layers_depth) # Pass valid mods, nodes, and also hidden layer size
-    # Load model weights
-    print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=False))
+    model = AdaMML_SubnetModel(
+        adapter_hidden_dim=args.adapter_hidden_dim,
+        valid_nodes = args.valid_nodes,
+        use_img=args.use_img, 
+        use_dep=args.use_dep, 
+        layerdrop=0.0,
+        layer_budget=args.layer_budget
+    )# Load model weights
+    
+    print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=True))
     model.eval() # Set model to eval mode for dropout
     # Create dataset and dataloader for test
-    testset = PickleDataset('./test_datasets/' + args.test_type + '/', args.valid_mods, args.valid_nodes)
+    testset = PickleDataset(args.cache_dir + '/test/', args.valid_mods, args.valid_nodes)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 

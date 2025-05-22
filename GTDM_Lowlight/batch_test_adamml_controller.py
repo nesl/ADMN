@@ -42,8 +42,6 @@ def get_args_parser():
     parser.add('--seedVal', type=int, default=100, help="Seed for training")
     parser.add('--folder', type=str, default='./logs', help='Folder containing the model')
     parser.add('--checkpoint', type=str, default='last.pt', help="ckpt nane")
-    parser.add('--test_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
-    parser.add('--discretization_method', type=str, default='admn', choices=['admn', 'straight_through', 'progressive'])
     # Parse arguments from the configuration file and command-line
     args = parser.parse_args()
     data_root = args.base_root + '/train'
@@ -108,7 +106,7 @@ def main(args):
     # Create model architecture
     model = AdaMML_Model_All(args.adapter_hidden_dim, valid_nodes=args.valid_nodes, total_layers=args.total_layers)
     # Load model weights
-    print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=False))
+    print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=True))
     model.eval() # Set model to eval mode for dropout
     # Create dataset and dataloader for test
     testset = PickleDataset(args.cache_dir + 'test', args.valid_mods, args.valid_nodes)

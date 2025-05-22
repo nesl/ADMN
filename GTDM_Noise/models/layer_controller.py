@@ -4,6 +4,7 @@ from models.vit_dev import TransformerEnc, positionalencoding1d
 from torchvision import transforms
 import numpy as np
 from einops import rearrange
+import torch.nn.functional as F
 
 EPSILON = np.finfo(np.float32).tiny
 

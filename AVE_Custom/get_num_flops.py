@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
-from models.GTDM_Model import GTDM_Controller, Conv_GTDM_Controller_Test_FLOPS
+from models.AVE_Model import AVE_Controller, Conv_AVE_Controller_Test_FLOPS
 from PickleDataset import AVE_Dataset
 from tracker import TorchMultiObsKalmanFilter
 from video_generator import VideoGenerator
@@ -26,7 +26,7 @@ def computeDist(tensor1, tensor2):
 
 
 def get_args_parser():
-    parser = configargparse.ArgumentParser(description='GTDM Controller Testing, load config file and override params',
+    parser = configargparse.ArgumentParser(description='AVE Controller Testing, load config file and override params',
                                            default_config_files=['./configs/configs.yaml'], config_file_parser_class=configargparse.YAMLConfigFileParser)
     # Define the parameters with their default values and types
     parser.add("--base_root", type=str, help="Base directory for datasets")
@@ -106,7 +106,7 @@ def main(args):
     # Point test.py to appropriate log folder containing the saved model weights
     dir_path = folder + '/'
     # Create model architecture
-    model = Conv_GTDM_Controller_Test_FLOPS(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers) # Pass valid mods, nodes, and also hidden layer size
+    model = Conv_AVE_Controller_Test_FLOPS(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers) # Pass valid mods, nodes, and also hidden layer size
     # Load model weights
     model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=False)
     model.eval() # Set model to eval mode for dropout

@@ -108,10 +108,9 @@ def main(args):
     # Create model architecture
     model = Conv_GTDM_Controller(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers) # Pass valid mods, nodes, and also hidden layer size
     # Load model weights
-    print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint), weights_only=False), strict=False))
+    print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint), weights_only=False), strict=True))
     model.eval() # Set model to eval mode for dropout
     # Create dataset and dataloader for test
-    # testset = PickleDataset('./test_datasets/' + args.test_type + '/', args.valid_mods, args.valid_nodes)
     testset = PickleDataset(args.cache_dir + 'test', args.valid_mods, args.valid_nodes)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)

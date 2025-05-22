@@ -62,7 +62,6 @@ def get_args_parser():
     parser.add("--save_every_X_model", type=int, default=5, help="Save model every X epochs")
     parser.add('--total_layers', type=int, default=8, help="How many layers to reduce to")
     parser.add('--seedVal', type=int, default=100, help="Seed for training")
-    parser.add('--train_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
     parser.add('--discretization_method', type=str, default='admn', choices=['admn', 'straight_through', 'progressive'])
     parser.add("--temp", type=float, default=1, help="Learning rate for training")
     # Parse arguments from the configuration file and command-line
@@ -151,9 +150,9 @@ def main(args):
     model = Conv_GTDM_Controller(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers)
 
     # We have similar variables between GTDM_Early Model and Conv_GTDM_Controller, this will help us initialize the backbones and the fusion layers
-    print(model.load_state_dict(torch.load('./logs/stage1_model.pt', weights_only=False), strict=False))
+    print(model.load_state_dict(torch.load('./logs/Stage_1_Model/last.pt', weights_only=False), strict=False))
     
-    ae_weights = torch.load('./logs/AE_Blur/last.pt')
+    ae_weights = torch.load('./logs/AE_Model/last.pt')
     #import pdb; pdb.set_trace()
     new_ae_weights = {}
     for key in ae_weights.keys():

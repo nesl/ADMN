@@ -32,6 +32,7 @@ def get_args_parser():
     parser.add_argument('--test_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
     parser.add_argument('--vit_layers_img', type=int, help='Number of layers in the image ViT')
     parser.add_argument('--vit_layers_depth', type=int, help='Number of layers in depth ViT')
+    parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'depth'], help="List of valid modalities")
     args = parser.parse_args()
 
     return args
@@ -43,7 +44,7 @@ def main(args):
     # Point test.py to appropriate log folder containing the saved model weights
     dir_path = folder + '/'
     # Create model architecture
-    model = MMFI_Early(vision_vit_layers=args.vit_layers_img, depth_vit_layers=args.vit_layers_depth) # Pass valid mods, nodes, and also hidden layer size
+    model = MMFI_Early(vision_vit_layers=args.vit_layers_img, depth_vit_layers=args.vit_layers_depth, valid_mods=args.valid_mods) # Pass valid mods, nodes, and also hidden layer size
     # Load model weights
     model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=True)
     model.eval() # Set model to eval mode for dropout

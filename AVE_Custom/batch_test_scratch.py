@@ -1,7 +1,7 @@
 from tqdm import tqdm, trange
 import torch
 from torch.utils.data import DataLoader
-from models.GTDM_Model import GTDM_Early
+from models.AVE_Model import AVE_Early
 from PickleDataset import PickleDataset
 from sklearn.metrics import accuracy_score
 import time
@@ -27,6 +27,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser("Arguments for batch_test_controller")
     # Define the parameters with their default values and types
     parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset/', help="Base dataset root")
+    parser.add_argument("--cached_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset_Cached/')
     parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'audio'], help="List of valid modalities")
     parser.add_argument("--adapter_hidden_dim", type=int, default=512, help="Dimension of adapter hidden layers")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
@@ -43,19 +44,18 @@ def get_args_parser():
     return args
 
 def main(args):
-
+    cache_data(args.base_root, args.cached_root)
     folder = str(args.folder)
     #import pdb; pdb.set_trace()
     # Point test.py to appropriate log folder containing the saved model weights
     dir_path = folder + '/'
     # Create model architecture
-    model = GTDM_Early(args.adapter_hidden_dim, valid_mods=args.valid_mods, vision_vit_layers=args.vit_layers_img, audio_vit_layers=args.vit_layers_audio) # Pass valid mods, nodes, and also hidden layer size
+    model = AVE_Early(args.adapter_hidden_dim, valid_mods=args.valid_mods, vision_vit_layers=args.vit_layers_img, audio_vit_layers=args.vit_layers_audio) # Pass valid mods, nodes, and also hidden layer size
     # Load model weights
     print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=False))
     model.eval() # Set model to eval mode for dropout
     # Create dataset and dataloader for test
-    cache_data(cached_root='/mnt/ssd_8t/jason/AVE_Dataset_Cached')
-    valset = PickleDataset(data_root = '/mnt/ssd_8t/jason/AVE_Dataset_Cached/', type='test')
+    valset = PickleDataset(data_root = args.cached_root, type='test')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     if args.batch_size != 1:
@@ -74,21 +74,12 @@ def main(args):
                 batch[i] = batch[i].to(device)
             _, _, label = batch
             start = time.time()
-            # Flops
-            # flops = FlopCountAnalysis(model, batch)
-            # num_flops = flops.total() / (1000 ** 3)
-            # print(flop_count_table(flops))
-            # print(num_flops)
-            # import pdb; pdb.set_trace()
             logits = model(batch) # Evaluate on test data
             total_model_time += time.time() - start
-            # Each modality and node combo has a predicted mean and covariance
-            # Even if 3D, we only plot 2D so we take only x and y
             pred_labels.append(torch.argmax(logits, dim=-1).cpu())
             gt_labels.append(label.cpu())
     pred_labels = torch.cat(pred_labels).numpy()
     gt_labels = torch.cat(gt_labels).numpy()
-
 
     print("Finished running model inference with accuracy", accuracy_score(gt_labels, pred_labels))
     f = open(dir_path + "test_loss.txt", "a")

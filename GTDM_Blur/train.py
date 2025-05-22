@@ -38,6 +38,7 @@ def get_args_parser():
     parser.add('--max_layerdrop', type=float, default=0.2, help="LayerDrop Rate for training")
     parser.add('--vision_vit_layers', type=int, default=12)
     parser.add('--depth_vit_layers', type=int, default=12)
+    parser.add('--dir_name', type=str, default='Stage_1_Model')
 
     # Parse arguments from the configuration file and command-line
     args = parser.parse_args()
@@ -109,9 +110,7 @@ def main(args):
     np.random.seed(seedVal)
 
     # Get current date and time to create new training directory within ./logs/ to store model weights
-    now = datetime.now()
-    dt_string = now.strftime("%d_%m_%Y %H_%M_%S")
-    os.mkdir('./logs/' + dt_string)
+    os.mkdir('./logs/' + args.dir_name)
 
     cache_data(args) # Runs cacher from the data_configs.py file, will convert hdf5 to pickle if not already done
     
@@ -138,7 +137,7 @@ def main(args):
     #Establish from training parameters
 
     optimizer = Adam(model.parameters(), lr=args.learning_rate)
-    writer = SummaryWriter(log_dir='./logs/' + dt_string) # Implement tensorboard
+    writer = SummaryWriter(log_dir='./logs/' + args.dir_name) # Implement tensorboard
    
    
     # Training loop
@@ -222,10 +221,10 @@ def main(args):
                 epoch_val_loss += val_loss
             epoch_val_loss /= batch_num
             print("Validation loss", epoch_val_loss)
-        with open( './logs/' + dt_string + '/log.txt', 'a') as handle:
+        with open( './logs/' + args.dir_name + '/log.txt', 'a') as handle:
             print('Epoch ' + str(epoch) + ' | Train loss ' + str(ad_train_loss) + ' | Val Loss ' + str(epoch_val_loss) + ' | Dropout ' + str(model.vision.layerdrop_rate) + ' ' + str(model.depth.layerdrop_rate)
                   , file=handle)
-        torch.save(model.state_dict(), './logs/' + dt_string + '/last.pt')
+        torch.save(model.state_dict(), './logs/' + args.dir_name + '/last.pt')
                 
 
 

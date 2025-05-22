@@ -1,0 +1,1 @@
+python3 train.py --dir_name Stage_1_Model --learning_rate 1e-3 --max_layerdrop 0.2 --num_epochs 1

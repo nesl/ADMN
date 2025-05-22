@@ -44,7 +44,7 @@ Example:
  python3 batch_test_scratch.py --folder ./logs/3_Layers_Scratch_200Epoch/ --checkpoint last.pt --vit_layers_img 3 --vit_layers_audio 3 --test_type continuous --batch_size 1 
  ``` 
  
- We need to specify the number of layers so we can initialize the GTDM_Early model properly
+ We need to specify the number of layers so we can initialize the AVE_Early model properly
 
 
 

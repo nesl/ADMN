@@ -21,7 +21,7 @@ def computeDist(tensor1, tensor2):
     return distance ** 0.5
 
 def get_args_parser():
-    parser = configargparse.ArgumentParser(description='GTDM Controller Testing, load config file and override params',
+    parser = configargparse.ArgumentParser(description='GTDM Testing, load config file and override params',
                                            default_config_files=['./configs/configs.yaml'], config_file_parser_class=configargparse.YAMLConfigFileParser)
     # Define the parameters with their default values and types
     parser.add("--base_root", type=str, help="Base directory for datasets")

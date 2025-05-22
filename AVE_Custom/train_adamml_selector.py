@@ -8,7 +8,7 @@ from PickleDataset import PickleDataset
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 from cacher import cache_data
-from models.GTDM_Model import AdaMML_Model_All, AdaMML_Modality_Selector
+from models.AVE_Model import AdaMML_Model_All, AdaMML_Modality_Selector
 from sklearn.metrics import accuracy_score
 
 import random
@@ -44,9 +44,10 @@ class CosineAnnealer:
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser(description='GTDM Controller Training, load config file and override params')
+    parser = argparse.ArgumentParser(description='AVE Controller Training, load config file and override params')
     # Define the parameters with their default values and types
-    parser.add_argument("--base_root", type=str, default = '/mnt/ssd2/data/AVE_Dataset/', help="Base dataset root")
+    parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset/', help="Base dataset root")
+    parser.add_argument("--cached_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset_Cached/', help="Base dataset root")
     parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'audio'], help="List of valid modalities")
     parser.add_argument("--learning_rate", type=float, default=1e-3, help="Learning rate for training")
     parser.add_argument("--num_epochs", type=int, default=10, help="Number of epochs to train")
@@ -56,7 +57,7 @@ def get_args_parser():
     parser.add_argument("--save_every_X_model", type=int, default=10, help="Save model every X epochs")
     parser.add_argument('--total_layers', type=int, default=8, help="How many layers to reduce to")
     parser.add_argument('--seedVal', type=int, default=100, help="Seed for training")
-    parser.add_argument('--train_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
+    
     parser.add_argument('--discretization_method', type=str, default='admn', choices=['admn', 'straight_through', 'progressive'])
     parser.add_argument("--temp", type=float, default=1, help="Learning rate for training")
     parser.add_argument("--img_ckp_path", type=str, default='logs/AdaMML_Subnet_Img_Test/last.pt', help="path of the pretrained image recognition model")
@@ -79,17 +80,14 @@ def main(args):
     torch.manual_seed(args.seedVal)
     torch.cuda.manual_seed(args.seedVal)
     np.random.seed(args.seedVal)
-    # Create based on noise type and number of layers
-    # dt_string = "Controller_" + str(args.train_type) + '_Layer_' + str(args.total_layers) + '_Seed_' + str(args.seedVal)
-    # os.mkdir('./logs/' + dt_string)
-    now = datetime.now()
-    dt_string = now.strftime("%d_%m_%Y %H_%M_%S")
+
+    dt_string = 'MNS_Model_Layer_' + str(args.total_layers) + '_Seed_' + str(args.seedVal)
     os.mkdir('./logs/' + dt_string)
     
-    #cache_data(cached_root = '/mnt/hdd1/yuyang/data/AVE_Dataset_Cached/')
+    cache_data(args.base_root, args.cached_root)
     #PickleDataset inherits from a Pytorch Dataset, creates train and val datasets
-    trainset = PickleDataset(data_root = '/mnt/ssd2/data/AVE_Dataset_Cached/', type='val')
-    valset = PickleDataset(data_root = '/mnt/ssd2/data/AVE_Dataset_Cached/', type='val')
+    trainset = PickleDataset(data_root = args.cached_root, type='val', valid_noise_types=[1, 2])
+    valset = PickleDataset(data_root = args.cached_root, type='val', valid_noise_types=[1, 2])
     batch_size = args.batch_size
     
     #Creates PyTorch dataloaders for train and val 
@@ -119,7 +117,7 @@ def main(args):
         param.requires_grad = True
    
 
-    optimizer = Adam(model.parameters())
+    optimizer = Adam(model.parameters(), lr=args.learning_rate)
 
     # We actually use a linear scheduler instead of Cosine
     scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, total_iters=args.num_epochs)

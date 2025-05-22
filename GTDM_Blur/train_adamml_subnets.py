@@ -10,7 +10,7 @@ from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 from cache_datasets import cache_data
 # from models.GTDM_Model import GTDM_Early
-from models.adamml_model import AdaMML_SubnetModel
+from models.GTDM_Model import AdaMML_SubnetModel
 import random
 import configargparse
 '''
@@ -32,7 +32,7 @@ def str2bool(v):
         return True
     if v in ('no', 'false', 'f', '0', 'n'):
         return False
-    raise argparse.ArgumentTypeError('Boolean value expected.')
+    raise Exception('Boolean value expected.')
 
 def get_args_parser():
     parser = configargparse.ArgumentParser(description='GTDM Controller Training, load config file and override params',
@@ -50,11 +50,10 @@ def get_args_parser():
     parser.add("--save_every_X_model", type=int, default=5, help="Save model every X epochs")
     parser.add('--seedVal', type=int, default=100, help="Seed for training")
     parser.add('--max_layerdrop', type=float, default=0.2, help="LayerDrop Rate for training")
-    parser.add('--vision_vit_layers', type=int, default=12)
-    parser.add('--depth_vit_layers', type=int, default=12)
     parser.add('--layer_budget', type=int, default=8, help='total layer budget')
     parser.add('--use_img', type=str2bool, default=True, help='whether to use image as input modality')
     parser.add('--use_dep', type=str2bool, default=True, help='whether to use depth as input modality')
+    parser.add('--dir_name', type=str, default='Stage_1_Model')
 
     # Parse arguments from the configuration file and command-line
     args = parser.parse_args()
@@ -123,9 +122,7 @@ def main(args):
     np.random.seed(seedVal)
 
     # Get current date and time to create new training directory within ./logs/ to store model weights
-    now = datetime.now()
-    dt_string = now.strftime("%d_%m_%Y %H_%M_%S")
-    os.mkdir('./logs/' + dt_string)
+    os.mkdir('./logs/' + args.dir_name)
 
     cache_data(args) # Runs cacher from the data_configs.py file, will convert hdf5 to pickle if not already done
     
@@ -168,7 +165,7 @@ def main(args):
     #Establish from training parameters
 
     optimizer = Adam(model.parameters(), lr=args.learning_rate)
-    writer = SummaryWriter(log_dir='./logs/' + dt_string) # Implement tensorboard
+    writer = SummaryWriter(log_dir='./logs/' + args.dir_name) # Implement tensorboard
    
    
     # Training loop
@@ -252,7 +249,7 @@ def main(args):
                 epoch_val_loss += val_loss
             epoch_val_loss /= batch_num
             print("Validation loss", epoch_val_loss)
-        with open( './logs/' + dt_string + '/log.txt', 'a') as handle:
+        with open( './logs/' + args.dir_name + '/log.txt', 'a') as handle:
             if model.use_img and model.use_dep:
                 print('Epoch ' + str(epoch) + ' | Train loss ' + str(ad_train_loss) + ' | Val Loss ' + str(epoch_val_loss) + ' | Dropout ' + str(model.vision.layerdrop_rate) + ' ' + str(model.depth.layerdrop_rate)
                   , file=handle)
@@ -262,7 +259,7 @@ def main(args):
             elif model.use_dep:
                 print('Epoch ' + str(epoch) + ' | Train loss ' + str(ad_train_loss) + ' | Val Loss ' + str(epoch_val_loss) + ' | Dropout ' + ' ' + str(model.depth.layerdrop_rate)
                   , file=handle)
-        torch.save(model.state_dict(), './logs/' + dt_string + '/last.pt')
+        torch.save(model.state_dict(), './logs/' + args.dir_name + '/last.pt')
                 
 
 

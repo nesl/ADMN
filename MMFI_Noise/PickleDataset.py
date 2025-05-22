@@ -227,6 +227,8 @@ class PickleDataset(Dataset):
 
                     curr_pickle['labels'] = int(action.split('A')[1]) - 1
                     self.data.append(curr_pickle)
+                    if len(self.data) == 100:
+                        return
     def __len__(self):
         return len(self.data)
     def __getitem__(self, idx):

@@ -83,8 +83,7 @@ def main(args):
     # Create based on noise type and number of layers
     # dt_string = "Controller_" + str(args.train_type) + '_Layer_' + str(args.total_layers) + '_Seed_' + str(args.seedVal)
     # os.mkdir('./logs/' + dt_string)
-    now = datetime.now()
-    dt_string = now.strftime("%d_%m_%Y %H_%M_%S")
+    dt_string = 'AE_Model'
     os.mkdir('./logs/' + dt_string)
     
     

@@ -151,9 +151,8 @@ def main(args):
     model = Conv_GTDM_Controller(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers)
 
     # We have similar variables between GTDM_Early Model and Conv_GTDM_Controller, this will help us initialize the backbones and the fusion layers
-    print(model.load_state_dict(torch.load('./logs/Good_Model/last.pt', weights_only=False), strict=False))
-    
-    ae_weights = torch.load('./logs/AE_Lowlight/last.pt')
+    print(model.load_state_dict(torch.load('./logs/Stage_1_Model/last.pt', weights_only=False), strict=False))
+    ae_weights = torch.load('./logs/AE_Model/last.pt')
     #import pdb; pdb.set_trace()
     new_ae_weights = {}
     for key in ae_weights.keys():

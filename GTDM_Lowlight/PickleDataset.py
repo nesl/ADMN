@@ -64,8 +64,6 @@ class PickleDataset(Dataset):
         
             self.data.append(curr_pickle)
       
-            # if len(self.data) == 100:
-            #     break
     def __len__(self):
         return len(self.data)
     def __getitem__(self, idx):

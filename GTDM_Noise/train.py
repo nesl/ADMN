@@ -38,6 +38,8 @@ def get_args_parser():
     parser.add('--max_layerdrop', type=float, default=0.2, help="LayerDrop Rate for training")
     parser.add('--vision_vit_layers', type=int, default=12)
     parser.add('--depth_vit_layers', type=int, default=12)
+    parser.add('--dir_name', type=str, default='Stage_1_Model')
+    parser.add('--from_scratch', action='store_true', default=False)
 
     # Parse arguments from the configuration file and command-line
     args = parser.parse_args()
@@ -94,10 +96,6 @@ def get_args_parser():
     return args
 
 
-    
-
-
-
 def main(args):
     # Enable reproducability with seed
     seedVal = int(args.seedVal)
@@ -109,9 +107,7 @@ def main(args):
     np.random.seed(seedVal)
 
     # Get current date and time to create new training directory within ./logs/ to store model weights
-    now = datetime.now()
-    dt_string = now.strftime("%d_%m_%Y %H_%M_%S")
-    os.mkdir('./logs/' + dt_string)
+    os.mkdir('./logs/' + args.dir_name)
 
     cache_data(args) # Runs cacher from the data_configs.py file, will convert hdf5 to pickle if not already done
     
@@ -131,14 +127,14 @@ def main(args):
 
     # Create the overall model and load on appropriate device
     # IN GTDM Early, we initialize with the MAE pretrained weights if we pass in 12 layers for image and depth and then freeze the majority of the layers
-    model = GTDM_Early(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, layerdrop=0.0, vision_vit_layers=args.vision_vit_layers, depth_vit_layers=args.depth_vit_layers)
+    model = GTDM_Early(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, layerdrop=0.0, vision_vit_layers=args.vision_vit_layers, depth_vit_layers=args.depth_vit_layers, from_scratch=args.from_scratch)
     model.to(device)
     
 
     #Establish from training parameters
 
     optimizer = Adam(model.parameters(), lr=args.learning_rate)
-    writer = SummaryWriter(log_dir='./logs/' + dt_string) # Implement tensorboard
+    writer = SummaryWriter(log_dir='./logs/' + args.dir_name) # Implement tensorboard
    
    
     # Training loop
@@ -231,10 +227,10 @@ def main(args):
             vision_layerdrop_rate = model.vision.layerdrop_rate
         if 'realsense_camera_depth' in args.valid_mods:
             depth_layerdrop_rate = model.depth.layerdrop_rate
-        with open( './logs/' + dt_string + '/log.txt', 'a') as handle:
+        with open( './logs/' + args.dir_name + '/log.txt', 'a') as handle:
             print('Epoch ' + str(epoch) + ' | Train loss ' + str(ad_train_loss) + ' | Val Loss ' + str(epoch_val_loss) + ' | Dropout ' + str(vision_layerdrop_rate) + ' ' + str(depth_layerdrop_rate)
                   , file=handle)
-        torch.save(model.state_dict(), './logs/' + dt_string + '/last.pt')
+        torch.save(model.state_dict(), './logs/' + args.dir_name + '/last.pt')
                 
 
 

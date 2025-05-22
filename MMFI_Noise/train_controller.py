@@ -98,7 +98,7 @@ def main(args):
     # Create the overall model and load on appropriate device
     model = Conv_MMFI_Controller(total_layers=args.total_layers)
 
-    print(model.load_state_dict(torch.load('./logs/MMFI_Base_Model_Img2_Depth3_LD02/last.pt'), strict=False))
+    print(model.load_state_dict(torch.load('./logs/Stage_1_Model/last.pt'), strict=False))
     # model_template = Conv_GTDM_Controller(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers)
 
     # model_template.load_state_dict(torch.load('./logs/Conv_Controller_Reference/last.pt'))
@@ -112,16 +112,6 @@ def main(args):
         param.requires_grad = True
    
 
-    # for param in model.vision.parameters():
-    #     param.requires_grad = False
-
-    # for param in model.depth.parameters():
-    #     param.requires_grad = False
-
-    # for param in model.vision.blocks[0].parameters():
-    #     param.requires_grad = True
-    # for param in model.depth.blocks[0].parameters():
-    #     param.requires_grad = True
 
     params = [
         {"params": [p for name, p in model.controller.named_parameters() if "output_head" not in name], "lr": args.learning_rate},

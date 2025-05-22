@@ -62,7 +62,6 @@ def get_args_parser():
     parser.add("--save_every_X_model", type=int, default=5, help="Save model every X epochs")
     parser.add('--total_layers', type=int, default=8, help="How many layers to reduce to")
     parser.add('--seedVal', type=int, default=100, help="Seed for training")
-    parser.add('--train_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
     parser.add('--discretization_method', type=str, default='admn', choices=['admn', 'straight_through', 'progressive'])
     parser.add("--temp", type=float, default=1, help="Learning rate for training")
     # Parse arguments from the configuration file and command-line
@@ -130,7 +129,7 @@ def main(args):
     torch.cuda.manual_seed(args.seedVal)
     np.random.seed(args.seedVal)
     # Create based on noise type and number of layers
-    dt_string = "Controller_" + str(args.train_type) + '_Layer_' + str(args.total_layers) + '_Seed_' + str(args.seedVal)
+    dt_string = 'Controller_Layer_' + str(args.total_layers) + '_Seed_' + str(args.seedVal)
     os.mkdir('./logs/' + dt_string)
     cache_data(args) # Runs cacher from the data_configs.py file, will convert hdf5 to pickle if not already done
     
@@ -151,7 +150,7 @@ def main(args):
     model = Conv_GTDM_Controller(args.adapter_hidden_dim, valid_mods=args.valid_mods, valid_nodes = args.valid_nodes, total_layers=args.total_layers)
 
     # We have similar variables between GTDM_Early Model and Conv_GTDM_Controller, this will help us initialize the backbones and the fusion layers
-    print(model.load_state_dict(torch.load('./logs/Good_Model/last.pt', weights_only=False), strict=False))
+    print(model.load_state_dict(torch.load('./logs/Stage_1_Model/last.pt', weights_only=False), strict=False))
     
     model.to(device)
     

@@ -145,14 +145,14 @@ class AVE_Dataset(Dataset):
     
 
 class PickleDataset:
-    def __init__(self, data_root, type='train'):
+    def __init__(self, data_root, type='train', valid_noise_types=[0, 1, 2, 3]):
         folder = data_root + '/' + type
         self.data = []
         folder_files = os.listdir(folder)
         for i in trange(len(folder_files)): # Temp fix, iterate through based on index and then 
             with open(folder + '/' + folder_files[i], 'rb') as handle:
                 curr_data = pickle.load(handle)
-                if curr_data[1] == 2 or curr_data[1] == 1:
+                if curr_data[1] in valid_noise_types:
                     self.data.append(curr_data)
             # if len(self.data) == 200:
             #     break

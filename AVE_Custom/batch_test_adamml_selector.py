@@ -2,7 +2,7 @@ from tqdm import tqdm, trange
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from models.GTDM_Model import AdaMML_Model_All
+from models.AVE_Model import AdaMML_Model_All
 from PickleDataset import PickleDataset
 from cacher import cache_data
 from sklearn.metrics import accuracy_score
@@ -20,6 +20,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser("Arguments for batch_test_controller")
     # Define the parameters with their default values and types
     parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset/', help="Base dataset root")
+    parser.add_argument("--cached_root", type=str, default = '/mnt/ssd_8t/jason/AVE_Dataset_Cached/')
     parser.add_argument("--adapter_hidden_dim", type=int, default=512, help="Dimension of adapter hidden layers")
     parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'audio'], help="List of valid modalities")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
@@ -33,9 +34,8 @@ def get_args_parser():
     return args
 
 def main(args):
-
+    cache_data(args.base_root, args.cached_root)
     folder = str(args.folder)
-    #import pdb; pdb.set_trace()
     # Point test.py to appropriate log folder containing the saved model weights
     dir_path = folder + '/'
     # Create model architecture
@@ -44,9 +44,10 @@ def main(args):
     print(model.load_state_dict(torch.load(dir_path + str(args.checkpoint)), strict=False))
     model.eval() # Set model to eval mode for dropout
     # Create dataset and dataloader for test
-    testset = PickleDataset(data_root = '/mnt/ssd2/data/AVE_Dataset_Cached/', type='test')
+    testset = PickleDataset(data_root = args.cached_root, type='test', valid_noise_types=[1, 2])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
+    
     if args.batch_size != 1:
         raise Exception("Batch size not one, are you sure")
     test_dataloader = DataLoader(testset, batch_size = args.batch_size, shuffle=False)

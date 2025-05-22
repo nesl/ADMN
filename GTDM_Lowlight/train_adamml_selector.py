@@ -53,10 +53,8 @@ def get_args_parser():
     parser.add("--save_every_X_model", type=int, default=5, help="Save model every X epochs")
     parser.add('--total_layers', type=int, default=8, help="How many layers to reduce to")
     parser.add('--seedVal', type=int, default=100, help="Seed for training")
-    parser.add('--train_type', type=str, default='continuous', choices=['continuous', 'discrete', 'finite'])
     parser.add('--discretization_method', type=str, default='admn', choices=['admn', 'straight_through', 'progressive'])
     parser.add("--temp", type=float, default=1, help="Learning rate for training")
-    parser.add("--pretrained_path", type=str, default='/home/yuyang/adamml_gtdm_lowlight_copy/logs/Good_Model/last.pt', help="path of the pretrained recognition model")
     parser.add("--img_ckp_path", type=str, default='logs/AdaMML_Subnet_Img_Test/last.pt', help="path of the pretrained image recognition model")
     parser.add("--dep_ckp_path", type=str, default='logs/AdaMML_Subnet_Dep_Test/last.pt', help="path of the pretrained depth recognition model")
     parser.add("--fused_ckp_path", type=str, default='logs/AdaMML_Subnet_Fusion/last.pt', help="path of the pretrained fused recognition model")
@@ -142,10 +140,22 @@ def main(args):
     # create the overall model
     model = AdaMML_Model_All(args.adapter_hidden_dim, valid_nodes=args.valid_nodes, total_layers=args.total_layers)
 
+    img_weights = torch.load(args.img_ckp_path, weights_only=False)
+    depth_weights = torch.load(args.dep_ckp_path, weights_only=False)
+    fused_weights = torch.load(args.fused_ckp_path, weights_only=False)
+
+    new_img_weights = {}
+    for key in img_weights.keys():
+        if 'depth' not in key:
+            new_img_weights[key] = img_weights[key]
+    new_dep_weights = {}
+    for key in depth_weights.keys():
+        if 'vision' not in key:
+            new_dep_weights[key] = depth_weights[key]
     # load the pretrained weights
-    print(model.vision.load_state_dict(torch.load(args.img_ckp_path, weights_only=False), strict=True))
-    print(model.depth.load_state_dict(torch.load(args.dep_ckp_path, weights_only=False), strict=True))
-    print(model.fused.load_state_dict(torch.load(args.fused_ckp_path, weights_only=False), strict=True))
+    print(model.vision.load_state_dict(new_img_weights, strict=True))
+    print(model.depth.load_state_dict(new_dep_weights, strict=True))
+    print(model.fused.load_state_dict(fused_weights, strict=True))
 
     model.to(device)
 

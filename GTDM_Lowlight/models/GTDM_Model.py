@@ -23,7 +23,7 @@ from torch.distributions import MultivariateNormal
 # layerdrop specified the layerdrop rate we want to employ, active during training only
 class GTDM_Early(nn.Module):
     def __init__(self, adapter_hidden_dim, valid_mods, valid_nodes, drop_layers_img = None, drop_layers_depth=None, 
-                 layerdrop=0.0, vision_vit_layers=12, depth_vit_layers=12):
+                 layerdrop=0.0, vision_vit_layers=12, depth_vit_layers=12, from_scratch=False):
         super(GTDM_Early, self).__init__()
 
         # Parameters used for multimodal fusion transformer
@@ -36,7 +36,7 @@ class GTDM_Early(nn.Module):
             patch_size=16, embed_dim=768, depth=vision_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
             norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_img)
         # Load in pretrained weights and freeze params if 12 layers ONLY
-        if vision_vit_layers == 12:
+        if vision_vit_layers == 12 and not from_scratch:
             print(self.vision.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth', weights_only=False)['model'], strict=False))
             # Freeze the parameters, leave only the last layer unfrozen
             for param in self.vision.parameters():
@@ -49,7 +49,7 @@ class GTDM_Early(nn.Module):
             patch_size=16, embed_dim=768, depth=depth_vit_layers, num_heads=12, mlp_ratio=4, qkv_bias=True,
             norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_depth)
         # Load in pretrained weights and freeze params if 12 layers ONLY
-        if depth_vit_layers == 12:
+        if depth_vit_layers == 12 and not from_scratch:
             print(self.depth.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth', weights_only=False)['model'], strict=False))
             for param in self.depth.parameters():
                 param.requires_grad = False
