@@ -1,0 +1,1 @@
+python3 train.py --max_layerdrop 0.4 --num_epochs 1 --dir_name Stage_1_Models --batch_size 8
