@@ -29,3 +29,5 @@ In each dataset/corruptions respective folder, there are a series of scripts tit
 
 `neurips_test_mns.sh`: We test the trained MNS models
 
+This repository is released under the BSD 3-Clause License. See the LICENSE file for details.
+
