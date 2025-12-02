@@ -105,9 +105,9 @@ def main(args):
     torch.manual_seed(seedVal)
     torch.cuda.manual_seed(seedVal)
     np.random.seed(seedVal)
-
+    from pathlib import Path
     # Get current date and time to create new training directory within ./logs/ to store model weights
-    os.mkdir('./logs/' + args.dir_name)
+    Path('./logs/' + args.dir_name).mkdir(parents=True, exist_ok=True)
 
     cache_data(args) # Runs cacher from the data_configs.py file, will convert hdf5 to pickle if not already done
     

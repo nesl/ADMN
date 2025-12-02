@@ -1,5 +1,0 @@
-logs/
-__pycache__/
-runs/
-*.pt
-*.pth
