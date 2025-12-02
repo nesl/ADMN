@@ -110,7 +110,8 @@ def main(args):
     np.random.seed(seedVal)
 
     # Get current date and time to create new training directory within ./logs/ to store model weights
-    os.mkdir('./logs/' + args.dir_name)
+    from pathlib import Path
+    Path('./logs/' + args.dir_name).mkdir(parents=True, exist_ok=True)
 
     cache_data(args) # Runs cacher from the data_configs.py file, will convert hdf5 to pickle if not already done
     
