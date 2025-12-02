@@ -15,7 +15,7 @@ from models.timm_vit import VisionTransformer
 from timm.models.vision_transformer import Block 
 from einops import rearrange
 from timm.models.layers import to_2tuple
-
+from configs import pretrained_path_audio, pretrained_path_img
 
 
 class PatchEmbed_new(nn.Module):
@@ -75,7 +75,7 @@ class AVE_Early(nn.Module):
             
             # Load in pretrained weights and freeze params if 12 layers ONLY
             if vision_vit_layers == 12 and not from_scratch:
-                print(self.vision.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
+                print(self.vision.load_state_dict(torch.load(pretrained_path_img)['model'], strict=False))
                 # Freeze the parameters, leave only the last layer unfrozen
                 for param in self.vision.parameters():
                     param.requires_grad = False
@@ -98,7 +98,7 @@ class AVE_Early(nn.Module):
 
             # Load in pretrained weights and freeze params if 12 layers ONLY
             if audio_vit_layers == 12 and not from_scratch:
-                state_dict = torch.load('AudioMAE_Dropout_FT_Dropout.pth')['model']
+                state_dict = torch.load(pretrained_path_audio)['model']
                 del state_dict['head.weight']
                 del state_dict['head.bias']
                 print(self.audio.load_state_dict(state_dict, strict=False))

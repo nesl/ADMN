@@ -13,14 +13,14 @@ from sklearn.metrics import accuracy_score
 import random
 import argparse
 from cacher import cache_data
-
+from configs import cached_root
 
 
 def get_args_parser():
     parser = argparse.ArgumentParser(description='AVE Controller Training, load config file and override params')
     # Define the parameters with their default values and types
     parser.add_argument("--base_root", type=str, default = '/mnt/ssd_8t/redacted/AVE_Dataset/', help="Base dataset root")
-    parser.add_argument("--cached_root", type=str, default = '/mnt/ssd_8t/redacted/AVE_Dataset_Cached/', help="Base dataset root")
+    parser.add_argument("--cached_root", type=str, default = cached_root, help="Base dataset root")
     parser.add_argument("--valid_mods", type=str, nargs="+", default=['image', 'audio'], help="List of valid modalities")
     parser.add_argument("--learning_rate", type=float, default=5e-4, help="Learning rate for training")
     parser.add_argument("--num_epochs", type=int, default=200, help="Number of epochs to train")
@@ -52,7 +52,8 @@ def main(args):
     np.random.seed(seedVal)
 
     # Create directory to store the model weights
-    os.mkdir('./logs/' + args.dir_name)
+    from pathlib import Path
+    Path('./logs/' + args.dir_name).mkdir(parents=True, exist_ok=True)
     
     cache_data(base_root=args.base_root, cached_root=args.cached_root)
     trainset = PickleDataset(data_root=args.cached_root, type='train')
