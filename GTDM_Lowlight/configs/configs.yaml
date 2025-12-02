@@ -1,6 +1,6 @@
 base_root: "/mnt/ssd_8t/redacted/IROS/Raw_Datasets/single_view_1"
 
-cache_dir: "/mnt/ssd_8t/redacted/Noisy_Dataset_Cache/Lowlight_Actual/"
+cache_dir: "/mnt/ssd_8t/jason/Noisy_Dataset_Cache/Lowlight_Actual/"
 
 valid_mods:
   - mocap

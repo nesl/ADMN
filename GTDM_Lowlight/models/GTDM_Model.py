@@ -37,7 +37,7 @@ class GTDM_Early(nn.Module):
             norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_img)
         # Load in pretrained weights and freeze params if 12 layers ONLY
         if vision_vit_layers == 12 and not from_scratch:
-            print(self.vision.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth', weights_only=False)['model'], strict=False))
+            print(self.vision.load_state_dict(torch.load('/mnt/ssd_8t/jason/Noisy_Dataset_Cache/MAE_Dropout_FT_Dropout.pth', weights_only=False)['model'], strict=False))
             # Freeze the parameters, leave only the last layer unfrozen
             for param in self.vision.parameters():
                 param.requires_grad = False
@@ -50,7 +50,7 @@ class GTDM_Early(nn.Module):
             norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_depth)
         # Load in pretrained weights and freeze params if 12 layers ONLY
         if depth_vit_layers == 12 and not from_scratch:
-            print(self.depth.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth', weights_only=False)['model'], strict=False))
+            print(self.depth.load_state_dict(torch.load('/mnt/ssd_8t/jason/Noisy_Dataset_Cache/MAE_Dropout_FT_Dropout.pth', weights_only=False)['model'], strict=False))
             for param in self.depth.parameters():
                 param.requires_grad = False
             for param in self.depth.blocks[10].parameters():
