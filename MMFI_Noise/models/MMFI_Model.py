@@ -22,6 +22,7 @@ from einops import rearrange, repeat
 from torchvision.models import resnet18
 from models.timm_vit import VisionTransformer
 from timm.models.vision_transformer import Block
+from config import pretrained_path
 
 class MMFI_Early(nn.Module):
     def __init__(self, drop_layers_img = None, drop_layers_depth=None, layerdrop=0.0, vision_vit_layers=12, depth_vit_layers=12, valid_mods=['image', 'depth'], from_scratch=False):
@@ -40,7 +41,7 @@ class MMFI_Early(nn.Module):
                 norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_img)
  
             if vision_vit_layers == 12 and not from_scratch:
-                print(self.vision.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
+                print(self.vision.load_state_dict(torch.load(pretrained_path)['model'], strict=False))
                 # Freeze the parameters, leave only the last layer unfrozen
                 for param in self.vision.parameters():
                     param.requires_grad = False
@@ -59,7 +60,7 @@ class MMFI_Early(nn.Module):
                 norm_layer=nn.LayerNorm, layerdrop=layerdrop, drop_layers = drop_layers_depth)
             #self.num_layer_embeds = nn.Embedding(13, dim_dec)
             if depth_vit_layers == 12 and not from_scratch:
-                print(self.depth.load_state_dict(torch.load('MAE_Dropout_FT_Dropout.pth')['model'], strict=False))
+                print(self.depth.load_state_dict(torch.load(pretrained_path)['model'], strict=False))
                 for param in self.depth.parameters():
                     param.requires_grad = False
                 for block_num in range(11, 12):

@@ -10,3 +10,10 @@ Old_Files
 *.pickle
 **/test_datasets/
 *.png
+# Ignore Python bytecode files
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore __pycache__ directories
+__pycache__/

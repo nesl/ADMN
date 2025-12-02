@@ -4,9 +4,11 @@ import os
 from torch.utils.data import DataLoader
 import pickle
 import numpy as np
+import config
+
 def get_args_parser():
     parser = argparse.ArgumentParser(description='Generating the dataset for consistent testing')
-    parser.add_argument("--base_root", type=str, default='/mnt/ssd_8t/redacted/MMFI_Pickles_Img_DepthColorized', help="Base directory for datasets")
+    parser.add_argument("--base_root", type=str, default=config.base_root, help="Base directory for datasets")
     parser.add_argument("--learning_rate", type=float, default=1e-6, help="Learning rate for training")
     parser.add_argument("--num_epochs", type=int, default=200, help="Number of epochs to train")
     parser.add_argument("--adapter_hidden_dim", type=int, default=512, help="Dimension of adapter hidden layers")

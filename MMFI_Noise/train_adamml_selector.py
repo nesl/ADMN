@@ -17,6 +17,7 @@ import argparse
 import random
 import argparse
 import sys
+import config
 
 class Tee:
     def __init__(self, *file_objects):
@@ -51,7 +52,7 @@ def mseloss(t1, t2):
 def get_args_parser():
     parser = argparse.ArgumentParser(description='GTDM Controller Training, load config file and override params')
     # Define the parameters with their default values and types
-    parser.add_argument("--base_root", type=str, default='/mnt/ssd_8t/redacted/MMFI_Pickles_Img_DepthColorized', help="Base directory for datasets")
+    parser.add_argument("--base_root", type=str, default=config.base_root, help="Base directory for datasets")
     parser.add_argument("--learning_rate", type=float, default=1e-5, help="Learning rate for training")
     parser.add_argument("--num_epochs", type=int, default=10, help="Number of epochs to train")
     parser.add_argument("--adapter_hidden_dim", type=int, default=512, help="Dimension of adapter hidden layers")

@@ -17,6 +17,7 @@ import random
 import argparse
 from PickleDataset import transform_noise, transform_mask
 from sklearn.metrics import accuracy_score
+import config
 
 def mseloss(t1, t2):
     sum = 0
@@ -25,9 +26,9 @@ def mseloss(t1, t2):
     return sum ** 0.5
 
 def get_args_parser():
-    parser = argparse.ArgumentParser(description='GTDM Controller Training, load config file and override params')
+    parser = argparse.ArgumentParser(description='Trains the Stage 1 Model')
     # Define the parameters with their default values and types
-    parser.add_argument("--base_root", type=str, default='/mnt/ssd_8t/redacted/MMFI_Pickles_Img_DepthColorized', help="Base directory for datasets")
+    parser.add_argument("--base_root", type=str, default=config.base_root, help="Base directory for datasets")
     parser.add_argument("--cache_dir", type=str, help="Directory to cache datasets")
     parser.add_argument("--learning_rate", type=float, default=1e-5, help="Learning rate for training")
     parser.add_argument("--num_epochs", type=int, default=200, help="Number of epochs to train")
@@ -60,8 +61,8 @@ def main(args):
     torch.cuda.manual_seed(seedVal)
     np.random.seed(seedVal)
     # Get current date and time to create new training directory within ./logs/ to store model weights
-
-    os.mkdir('./logs/' + args.dir_name)
+    from pathlib import Path
+    Path('./logs/' + args.dir_name).mkdir(parents=True, exist_ok=True)
 
     
     #PickleDataset inherits from a Pytorch Dataset, creates train and val datasets
